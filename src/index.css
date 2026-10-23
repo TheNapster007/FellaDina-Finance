@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-serif: 'Newsreader', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Theme colors - Light */
+    --canvas-bg: #F7F5F0;
+    --card-bg: #FFFFFF;
+    --card-subtle: #FAF8F5;
+    --card-hover: #FAF8F3;
+    --pill-bg: #EFECE3;
+    --border-color: #E5E0D5;
+    --border-hover: #D6CEBF;
+    --text-primary: #221F1C;
+    --text-secondary: #6A6154;
+    --text-muted: #8C8375;
+    --grid-line: #EDE8DC;
+  }
+
+  .dark {
+    /* Theme colors - Dark */
+    --canvas-bg: #141311;
+    --card-bg: #1E1D19;
+    --card-subtle: #24221E;
+    --card-hover: #2A2722;
+    --pill-bg: #292723;
+    --border-color: #312E28;
+    --border-hover: #454038;
+    --text-primary: #F2EFEA;
+    --text-secondary: #B6AEA3;
+    --text-muted: #887F72;
+    --grid-line: #2B2823;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--canvas-bg);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: var(--font-serif);
+  }
+}
+
+.font-editorial {
+  font-family: 'Newsreader', Georgia, serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--canvas-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Print and PDF generation styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #1A1A1A !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

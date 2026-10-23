@@ -1,0 +1,6 @@
+{
+  "name": "Mizan - Suivi Financier & Budget",
+  "description": "Application élégante de suivi de trésorerie, gestion des dépenses et revenus avec tableau de bord KPI exécutif.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
