@@ -1,6 +1,7 @@
 import React from 'react';
-import { PeriodFilter, Currency, Language, Theme } from '../types';
-import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus, Sparkles } from 'lucide-react';
+import { PeriodFilter, Currency, Language, Theme, UserProfile } from '../types';
+import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus, Sparkles, UserPlus, PiggyBank } from 'lucide-react';
+import { UserProfileMenu } from './UserProfileMenu';
 
 interface TopNavProps {
   period: PeriodFilter;
@@ -20,6 +21,11 @@ interface TopNavProps {
   onOpenCategoryManager?: () => void;
   onOpenSubCategoryManager?: () => void;
   onResetData: () => void;
+  currentUser: UserProfile | null;
+  onOpenSignUp: () => void;
+  onOpenSignIn: () => void;
+  onLogout: () => void;
+  onEditProfile: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -40,6 +46,11 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenCategoryManager,
   onOpenSubCategoryManager,
   onResetData,
+  currentUser,
+  onOpenSignUp,
+  onOpenSignIn,
+  onLogout,
+  onEditProfile,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#F7F5F0]/95 dark:bg-[#1A1916]/95 backdrop-blur-md border-b border-[#E7E2D6] dark:border-[#2E2B25] px-4 sm:px-8 py-3 transition-colors">
@@ -115,6 +126,24 @@ export const TopNav: React.FC<TopNavProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4 text-[#3B6B55]" />
             </button>
+
+            {currentUser ? (
+              <button
+                onClick={onEditProfile}
+                title={`Profil : ${currentUser.name}`}
+                className="w-7 h-7 rounded-lg bg-[#A24824] text-white flex items-center justify-center text-xs font-bold shadow-2xs"
+              >
+                {currentUser.name.charAt(0).toUpperCase()}
+              </button>
+            ) : (
+              <button
+                onClick={onOpenSignUp}
+                title="S'inscrire et démarrer mon budget"
+                className="p-1.5 bg-[#FAF4F0] dark:bg-[#2A211D] border border-[#E8D4C8] dark:border-[#4A2D22] text-[#A24824] dark:text-[#E8734C] rounded-lg shadow-2xs"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
+            )}
 
             <button
               onClick={onOpenAddModal}
@@ -290,6 +319,19 @@ export const TopNav: React.FC<TopNavProps> = ({
             <span className="hidden md:inline">{language === 'ar_ma' ? 'Tawaqo3at 3M' : 'Prévisions 3M'}</span>
           </button>
 
+          {/* Quick Jump to Savings Goals */}
+          <button
+            onClick={() => {
+              const el = document.getElementById('savings-goals-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            title={language === 'ar_ma' ? 'Ahdaf d l-ittikhar (Objectifs d’épargne & Surplus)' : 'Consulter et allouer vos objectifs d’épargne'}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#F0F5F2] dark:bg-[#1A2520] hover:bg-[#E3EEE7] dark:hover:bg-[#20322A] border border-[#CCDCD2] dark:border-[#2D4537] text-[#3B6B55] dark:text-[#52A36F] rounded-lg transition-colors font-medium shadow-2xs"
+          >
+            <PiggyBank className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{language === 'ar_ma' ? 'Épargne' : 'Épargne'}</span>
+          </button>
+
           {/* Reset / Reload Demo Data */}
           <button
             onClick={onResetData}
@@ -298,6 +340,17 @@ export const TopNav: React.FC<TopNavProps> = ({
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+
+          {/* User Profile / Sign Up Dropdown */}
+          <UserProfileMenu
+            currentUser={currentUser}
+            onOpenSignUp={onOpenSignUp}
+            onOpenSignIn={onOpenSignIn}
+            onLogout={onLogout}
+            onEditProfile={onEditProfile}
+            language={language}
+            currency={currency}
+          />
 
           {/* Desktop Primary CTA */}
           <button

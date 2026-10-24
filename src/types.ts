@@ -139,3 +139,61 @@ export interface ForecastReport {
   categoryForecasts: CategoryForecastItem[];
 }
 
+export interface UserIncomeSource {
+  id: string;
+  name: string;
+  nameDarija?: string;
+  amount: number;
+  frequency: 'monthly' | 'one-time';
+  dayOfMonth?: number;
+}
+
+export interface UserExpenseBudgetPlan {
+  categoryId: string;
+  name: string;
+  nameDarija?: string;
+  amount: number;
+  isFixedCharge?: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatarSeed?: string;
+  currency: Currency;
+  initialBalance: number;
+  createdAt: string;
+  incomes: UserIncomeSource[];
+  expenses: UserExpenseBudgetPlan[];
+}
+
+export type SavingsGoalCategory =
+  | 'emergency'
+  | 'real_estate'
+  | 'travel'
+  | 'vehicle'
+  | 'education'
+  | 'investment'
+  | 'family'
+  | 'project';
+
+export type GoalPriority = 'high' | 'medium' | 'low';
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  nameDarija?: string;
+  targetAmount: number;
+  currentAmount: number;
+  monthlyAllocation: number; // Planned contribution from monthly cash surplus
+  targetDate: string; // ISO format: YYYY-MM-DD
+  category: SavingsGoalCategory;
+  priority: GoalPriority;
+  color?: string;
+  icon?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+

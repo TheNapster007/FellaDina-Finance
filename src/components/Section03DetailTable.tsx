@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Transaction, CategoryBudget, SubCategory, Currency, Language } from '../types';
-import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileText, Layers, Tag, Receipt, ChevronDown, ChevronRight, Eye, FolderPlus } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileText, Layers, Tag, Receipt, ChevronDown, ChevronRight, Eye, FolderPlus, X, Filter, Calendar, Hash } from 'lucide-react';
 import { exportFinancialDataToCsv } from '../utils/exportCsv';
 
 interface Section03DetailTableProps {
@@ -76,23 +76,160 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
     };
   });
 
-  // Filtered transactions for the journal
+  // Month names dictionary for matching dates in French, English, and Moroccan Darija
+  const MONTH_NAMES_MAP: Record<number, string[]> = {
+    1: ['janvier', 'janv', 'jan', 'january', 'yanayer'],
+    2: ['février', 'fevrier', 'fevr', 'feb', 'february', 'febrayer'],
+    3: ['mars', 'mar', 'march', 'marsi'],
+    4: ['avril', 'avr', 'apr', 'april', 'abril'],
+    5: ['mai', 'may'],
+    6: ['juin', 'jun', 'june', 'younyou'],
+    7: ['juillet', 'juil', 'jul', 'july', 'youlyouz'],
+    8: ['août', 'aout', 'aou', 'aug', 'august', 'ghoucht'],
+    9: ['septembre', 'sept', 'sep', 'september', 'choutanbir'],
+    10: ['octobre', 'oct', 'october', 'oktobar'],
+    11: ['novembre', 'nov', 'november', 'nouwanbir'],
+    12: ['décembre', 'decembre', 'dec', 'december', 'doujanbir'],
+  };
+
+  // Helper checking if a single query token matches a transaction
+  const matchTransactionTerm = (t: Transaction, term: string): boolean => {
+    if (!term) return true;
+
+    const cat = categories.find((c) => c.id === t.category);
+    const sub = subCategories.find((s) => s.id === t.subCategory);
+
+    // 1. Amount Comparison Operators (e.g. > 1000, >= 500, < 200, <= 50, = 4500)
+    const opMatch = term.match(/^([><]=?|=)\s*([0-9]+([.,][0-9]+)?)$/);
+    if (opMatch) {
+      const op = opMatch[1];
+      const val = parseFloat(opMatch[2].replace(',', '.'));
+      if (!isNaN(val)) {
+        if (op === '>') return t.amount > val;
+        if (op === '>=') return t.amount >= val;
+        if (op === '<') return t.amount < val;
+        if (op === '<=') return t.amount <= val;
+        if (op === '=') return Math.abs(t.amount - val) < 0.01;
+      }
+    }
+
+    // 2. Keyword Matching (note, category label & id, subcategory, recipient, paymentMethod, items, type)
+    const noteMatch = t.note.toLowerCase().includes(term);
+    const categoryIdMatch = t.category.toLowerCase().includes(term);
+    const categoryLabelMatch = cat?.label.toLowerCase().includes(term);
+    const categoryDarijaMatch = cat?.labelDarija?.toLowerCase().includes(term);
+    const subNameMatch = sub?.name.toLowerCase().includes(term);
+    const subDarijaMatch = sub?.nameDarija?.toLowerCase().includes(term);
+    const recipientMatch = Boolean(t.recipientOrSource && t.recipientOrSource.toLowerCase().includes(term));
+    const paymentMethodMatch = Boolean(t.paymentMethod && t.paymentMethod.toLowerCase().includes(term));
+    const itemMatch = Boolean(t.items?.some((it) => it.name.toLowerCase().includes(term)));
+
+    // Type matches (French, English, Darija terms)
+    const isIncomeToken = ['rentree', 'rentrée', 'rentrees', 'rentrées', 'income', 'revenu', 'salaire', 'incomes', 'dakhl'].some(
+      (k) => k.includes(term) || term.includes(k)
+    );
+    const isExpenseToken = ['depense', 'dépense', 'depenses', 'dépenses', 'expense', 'expenses', 'sortie', 'masrouf'].some(
+      (k) => k.includes(term) || term.includes(k)
+    );
+    const typeMatch = (isIncomeToken && t.type === 'income') || (isExpenseToken && t.type === 'expense');
+
+    if (
+      noteMatch ||
+      categoryIdMatch ||
+      categoryLabelMatch ||
+      categoryDarijaMatch ||
+      subNameMatch ||
+      subDarijaMatch ||
+      recipientMatch ||
+      paymentMethodMatch ||
+      itemMatch ||
+      typeMatch
+    ) {
+      return true;
+    }
+
+    // 3. Amount Matching (raw number, rounded, french formatted, or item total)
+    const cleanNumeric = term.replace(/[^\d.,]/g, '').replace(',', '.');
+    if (cleanNumeric && !isNaN(Number(cleanNumeric))) {
+      const amountStr = t.amount.toString();
+      const roundStr = Math.round(t.amount).toString();
+      const formattedFR = Math.round(t.amount).toLocaleString('fr-FR').replace(/\s+/g, '');
+      if (
+        amountStr.includes(cleanNumeric) ||
+        roundStr.includes(cleanNumeric) ||
+        formattedFR.includes(cleanNumeric.replace('.', ''))
+      ) {
+        return true;
+      }
+
+      // Check item prices if items receipt breakdown exists
+      const itemPriceMatch = t.items?.some(
+        (it) =>
+          it.totalPrice.toString().includes(cleanNumeric) ||
+          Math.round(it.totalPrice).toString().includes(cleanNumeric)
+      );
+      if (itemPriceMatch) return true;
+    }
+
+    // 4. Date Matching (ISO date, DD/MM/YYYY, DD/MM, Day number, Month names)
+    if (t.date.toLowerCase().includes(term)) {
+      return true;
+    }
+
+    const dateParts = t.date.split('-');
+    if (dateParts.length === 3) {
+      const [year, monthStr, dayStr] = dateParts;
+      const monthNum = parseInt(monthStr, 10);
+      const dayNum = parseInt(dayStr, 10);
+
+      const euroFull = `${dayStr}/${monthStr}/${year}`;
+      const euroShort = `${dayStr}/${monthStr}`;
+      const dashShort = `${dayStr}-${monthStr}`;
+      if (euroFull.includes(term) || euroShort.includes(term) || dashShort.includes(term)) {
+        return true;
+      }
+
+      // Exact day match (e.g. "24" or "le 24")
+      if (term === dayStr || term === String(dayNum) || term === `le ${dayNum}`) {
+        return true;
+      }
+
+      // Month name match (e.g. "octobre", "oct", "septembre", "janvier")
+      const monthKeywords = MONTH_NAMES_MAP[monthNum] || [];
+      if (monthKeywords.some((kw) => kw.includes(term) || term.includes(kw))) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Filtered transactions for the journal with real-time keyword, amount, and date filtering
   const filteredTransactions = transactions.filter((t) => {
     const matchesType = filterType === 'all' || t.type === filterType;
     const matchesSub = filterSubCategory === 'all' || t.subCategory === filterSubCategory;
 
-    const sub = subCategories.find((s) => s.id === t.subCategory);
-    const subName = sub ? sub.name.toLowerCase() : '';
-    const itemMatch = t.items?.some((it) => it.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!matchesType || !matchesSub) return false;
 
-    const matchesSearch =
-      t.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      subName.includes(searchQuery.toLowerCase()) ||
-      Boolean(itemMatch) ||
-      Boolean(t.recipientOrSource && t.recipientOrSource.toLowerCase().includes(searchQuery.toLowerCase()));
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    if (!trimmedQuery) return true;
 
-    return matchesType && matchesSub && matchesSearch;
+    // Direct normalized match for space-formatted amounts (e.g., "4 500" or "4500 DH")
+    const noSpacesQuery = trimmedQuery.replace(/\s+/g, '').replace(/dh|mad|€|\$|eur|usd/g, '');
+    const roundAmountNoSpaces = Math.round(t.amount).toString();
+    const formattedAmountNoSpaces = Math.round(t.amount).toLocaleString('fr-FR').replace(/\s+/g, '');
+    if (noSpacesQuery && (roundAmountNoSpaces === noSpacesQuery || formattedAmountNoSpaces === noSpacesQuery)) {
+      return true;
+    }
+
+    // Comparison operator query (e.g., "> 1000")
+    if (/^[><]=?|=/.test(trimmedQuery)) {
+      return matchTransactionTerm(t, trimmedQuery);
+    }
+
+    // Split by whitespace: all tokens must match
+    const tokens = trimmedQuery.split(/\s+/).filter(Boolean);
+    return tokens.every((token) => matchTransactionTerm(t, token));
   });
 
   // Export to CSV
@@ -150,14 +287,32 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
               }`}
             >
               {language === 'ar_ma' ? 'Journal d l&apos;opérations' : 'Journal des Transactions'}
-              <span className="ml-1.5 px-1.5 py-0.2 bg-[#DDD6C8] dark:bg-[#433E35] rounded text-[10px] font-mono">
-                {transactions.length}
+              <span
+                className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-colors ${
+                  searchQuery.trim()
+                    ? 'bg-[#A24824] text-white'
+                    : 'bg-[#DDD6C8] dark:bg-[#433E35] text-[#2B2621] dark:text-[#E8E4DC]'
+                }`}
+              >
+                {searchQuery.trim() ? `${filteredTransactions.length}/${transactions.length}` : transactions.length}
               </span>
             </button>
           </div>
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2">
+            {activeTab === 'categories' && (
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#26241F] border border-[#D5CDBC] dark:border-[#3D382F] hover:border-[#A24824] text-[#4A4237] dark:text-[#E8E4DC] hover:text-[#A24824] rounded-lg text-xs font-medium transition-colors"
+                title="Rechercher des transactions par mot-clé, montant ou date"
+              >
+                <Search className="w-3.5 h-3.5 text-[#A24824] dark:text-[#E8734C]" />
+                <span className="hidden sm:inline">
+                  {language === 'ar_ma' ? 'Qlleb' : 'Rechercher'}
+                </span>
+              </button>
+            )}
             {onOpenCategoryManager && (
               <button
                 onClick={onOpenCategoryManager}
@@ -362,79 +517,144 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
         {activeTab === 'transactions' && (
           <div>
             {/* Search and Filters Bar */}
-            <div className="p-4 border-b border-[#EBE6DC] dark:border-[#312E28] bg-white dark:bg-[#1E1D19] flex flex-col md:flex-row items-center justify-between gap-3">
-              {/* Search input */}
-              <div className="relative w-full md:w-72">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C8375] dark:text-[#887F72]" />
-                <input
-                  type="text"
-                  placeholder={
-                    language === 'ar_ma'
-                      ? 'Qlleb f l&apos;opérations, articles (atay, sokar...)...'
-                      : 'Rechercher une opération ou article (Atay, Sucre...)...'
-                  }
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg text-[#25201B] dark:text-[#F2EFEA] placeholder-[#A49B8E] dark:placeholder-[#766E62] focus:outline-none focus:ring-1 focus:ring-[#A24824]"
-                />
+            <div className="p-4 border-b border-[#EBE6DC] dark:border-[#312E28] bg-white dark:bg-[#1E1D19] space-y-3">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                {/* Search input with live count & clear button */}
+                <div className="relative flex-1 max-w-xl">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C8375] dark:text-[#887F72]" />
+                  <input
+                    type="text"
+                    placeholder={
+                      language === 'ar_ma'
+                        ? 'Qlleb b l-kelma, montant (ex: 4500, >1000), aw tarikh (ex: 2026-10, oct)...'
+                        : language === 'en'
+                        ? 'Search keywords, amount (e.g. 4500, >1000), date (e.g. 2026-10, Oct)...'
+                        : 'Rechercher mot-clé, montant (ex: 4500, >1000), date (ex: 2026-10, oct)...'
+                    }
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-20 py-2 text-xs bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg text-[#25201B] dark:text-[#F2EFEA] placeholder-[#A49B8E] dark:placeholder-[#766E62] focus:outline-none focus:ring-1 focus:ring-[#A24824] transition-colors"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="p-1 text-[#8C8375] hover:text-[#A24824] dark:hover:text-[#E8734C] transition-colors rounded-full"
+                        title="Effacer la recherche"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#EBE6DC] dark:bg-[#343029] text-[#6A6052] dark:text-[#A69E91] font-semibold">
+                      {filteredTransactions.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* SubCategory and Type Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* SubCategory Filter Dropdown */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-[#6A6052] dark:text-[#9A9184]">
+                      {language === 'ar_ma' ? 'Sous-catégorie :' : 'Sous-catégorie :'}
+                    </span>
+                    <select
+                      value={filterSubCategory}
+                      onChange={(e) => setFilterSubCategory(e.target.value)}
+                      className="bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg px-2.5 py-1.5 text-xs text-[#25201B] dark:text-[#F2EFEA] focus:outline-none focus:ring-1 focus:ring-[#A24824]"
+                    >
+                      <option value="all">
+                        {language === 'ar_ma' ? 'Koulchi (Toutes)' : 'Toutes les sous-catégories'}
+                      </option>
+                      {subCategories.map((sub) => {
+                        const parent = categories.find((c) => c.id === sub.categoryId);
+                        return (
+                          <option key={sub.id} value={sub.id}>
+                            {parent?.label} → {sub.name}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Type pill filter */}
+                  <div className="flex items-center gap-1 p-0.5 bg-[#EBE6DC] dark:bg-[#2C2923] rounded-lg text-xs">
+                    <button
+                      onClick={() => setFilterType('all')}
+                      className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                        filterType === 'all'
+                          ? 'bg-white dark:bg-[#38342D] text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs font-semibold'
+                          : 'text-[#6A6052] dark:text-[#9A9184]'
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    <button
+                      onClick={() => setFilterType('income')}
+                      className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                        filterType === 'income'
+                          ? 'bg-white dark:bg-[#38342D] text-[#3B6B55] dark:text-[#52A36F] shadow-2xs font-semibold'
+                          : 'text-[#6A6052] dark:text-[#9A9184]'
+                      }`}
+                    >
+                      Entrées
+                    </button>
+                    <button
+                      onClick={() => setFilterType('expense')}
+                      className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                        filterType === 'expense'
+                          ? 'bg-white dark:bg-[#38342D] text-[#A24824] dark:text-[#E8734C] shadow-2xs font-semibold'
+                          : 'text-[#6A6052] dark:text-[#9A9184]'
+                      }`}
+                    >
+                      Dépenses
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                {/* SubCategory Filter Dropdown */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-[#6A6052] dark:text-[#9A9184]">
-                    Sous-catégorie:
-                  </span>
-                  <select
-                    value={filterSubCategory}
-                    onChange={(e) => setFilterSubCategory(e.target.value)}
-                    className="bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg px-2.5 py-1 text-xs text-[#25201B] dark:text-[#F2EFEA] focus:outline-none focus:ring-1 focus:ring-[#A24824]"
-                  >
-                    <option value="all">Toutes les sous-catégories</option>
-                    {subCategories.map((sub) => {
-                      const parent = categories.find((c) => c.id === sub.categoryId);
-                      return (
-                        <option key={sub.id} value={sub.id}>
-                          {parent?.label} → {sub.name}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+              {/* Quick Filter suggestions / helper pills */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-medium text-[#7C7365] dark:text-[#8E8679] flex items-center gap-1">
+                  <Filter className="w-3 h-3 text-[#A24824]" />
+                  <span>{language === 'ar_ma' ? 'I9tirahat :' : 'Filtres rapides :'}</span>
+                </span>
+                {[
+                  { label: '> 1 000 DH', query: '> 1000' },
+                  { label: 'Octobre 2026', query: '2026-10' },
+                  { label: 'Alimentation', query: 'Alimentation' },
+                  { label: 'Virement', query: 'virement' },
+                  { label: 'Espèces', query: 'especes' },
+                ].map((chip) => {
+                  const isActive = searchQuery === chip.query;
+                  return (
+                    <button
+                      key={chip.label}
+                      onClick={() => setSearchQuery(isActive ? '' : chip.query)}
+                      className={`px-2 py-0.5 rounded text-[11px] transition-all font-medium border ${
+                        isActive
+                          ? 'bg-[#A24824] text-white border-[#A24824] shadow-2xs'
+                          : 'bg-[#FAF8F5] dark:bg-[#25231F] border-[#E0D9CB] dark:border-[#38342D] text-[#554C40] dark:text-[#C5BEB3] hover:border-[#A24824]/60 hover:text-[#A24824]'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  );
+                })}
 
-                {/* Type pill filter */}
-                <div className="flex items-center gap-1 p-0.5 bg-[#EBE6DC] dark:bg-[#2C2923] rounded-lg text-xs">
+                {(searchQuery || filterType !== 'all' || filterSubCategory !== 'all') && (
                   <button
-                    onClick={() => setFilterType('all')}
-                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
-                      filterType === 'all'
-                        ? 'bg-white dark:bg-[#38342D] text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs font-semibold'
-                        : 'text-[#6A6052] dark:text-[#9A9184]'
-                    }`}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilterType('all');
+                      setFilterSubCategory('all');
+                    }}
+                    className="ml-auto inline-flex items-center gap-1 text-[11px] text-[#A24824] dark:text-[#E8734C] hover:underline font-medium cursor-pointer"
                   >
-                    Tous
+                    <X className="w-3 h-3" />
+                    <span>{language === 'ar_ma' ? 'Mseh koulschi' : 'Réinitialiser tous les filtres'}</span>
                   </button>
-                  <button
-                    onClick={() => setFilterType('income')}
-                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
-                      filterType === 'income'
-                        ? 'bg-white dark:bg-[#38342D] text-[#3B6B55] dark:text-[#52A36F] shadow-2xs font-semibold'
-                        : 'text-[#6A6052] dark:text-[#9A9184]'
-                    }`}
-                  >
-                    Entrées
-                  </button>
-                  <button
-                    onClick={() => setFilterType('expense')}
-                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
-                      filterType === 'expense'
-                        ? 'bg-white dark:bg-[#38342D] text-[#A24824] dark:text-[#E8734C] shadow-2xs font-semibold'
-                        : 'text-[#6A6052] dark:text-[#9A9184]'
-                    }`}
-                  >
-                    Dépenses
-                  </button>
-                </div>
+                )}
               </div>
             </div>
 
@@ -455,8 +675,39 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                 <tbody className="divide-y divide-[#F2EFE8] dark:divide-[#2B2822] text-[#2F2922] dark:text-[#ECE7DE]">
                   {filteredTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-[#8C8375] dark:text-[#887F72]">
-                        Aucune transaction trouvée.
+                      <td colSpan={7} className="py-12 text-center">
+                        <div className="max-w-sm mx-auto flex flex-col items-center justify-center text-center">
+                          <div className="w-10 h-10 rounded-full bg-[#FAF0E6] dark:bg-[#34241D] flex items-center justify-center text-[#A24824] dark:text-[#E8734C] mb-3">
+                            <Search className="w-5 h-5" />
+                          </div>
+                          <h4 className="text-sm font-semibold text-[#25201B] dark:text-[#F2EFEA] mb-1">
+                            {language === 'ar_ma'
+                              ? 'Walou ma lqinah b had l-bahth'
+                              : 'Aucune transaction trouvée'}
+                          </h4>
+                          <p className="text-xs text-[#7C7365] dark:text-[#9A9184] mb-3 leading-relaxed">
+                            {searchQuery.trim()
+                              ? language === 'ar_ma'
+                                ? `Hta chi opération ma katchbeh l « ${searchQuery} ». Jerreb montant khor aw tarikh.`
+                                : `Aucune opération ne correspond à « ${searchQuery} ». Essayez un montant (ex: 4500), une date (ex: 2026-10) ou un mot-clé.`
+                              : language === 'ar_ma'
+                              ? 'Walou f had l-filtrage. Beddel l&apos;ikhtiyarat.'
+                              : 'Aucune opération avec ces filtres sélectionnés.'}
+                          </p>
+                          {(searchQuery || filterType !== 'all' || filterSubCategory !== 'all') && (
+                            <button
+                              onClick={() => {
+                                setSearchQuery('');
+                                setFilterType('all');
+                                setFilterSubCategory('all');
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#25231F] border border-[#D5CDBC] dark:border-[#3D382F] hover:border-[#A24824] text-xs font-semibold text-[#A24824] dark:text-[#E8734C] transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>{language === 'ar_ma' ? 'Mseh l-bahth' : 'Effacer la recherche'}</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ) : (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, CategoryBudget, SubCategory, PeriodFilter, Currency, Language, Theme, ToastNotification } from './types';
-import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_SUB_CATEGORIES, MONTHLY_TREND_SERIES } from './data/initialData';
+import { Transaction, CategoryBudget, SubCategory, PeriodFilter, Currency, Language, Theme, ToastNotification, UserProfile, SavingsGoal } from './types';
+import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_SUB_CATEGORIES, INITIAL_SAVINGS_GOALS, MONTHLY_TREND_SERIES } from './data/initialData';
 import { TopNav } from './components/TopNav';
 import { HeroHeader } from './components/HeroHeader';
 import { KpiCards } from './components/KpiCards';
@@ -9,14 +9,18 @@ import { Section02Breakdown } from './components/Section02Breakdown';
 import { Section03DetailTable } from './components/Section03DetailTable';
 import { Section04FinancialCalendar } from './components/Section04FinancialCalendar';
 import { Section05BudgetForecast } from './components/Section05BudgetForecast';
+import { Section06SavingsGoals } from './components/Section06SavingsGoals';
 import { TransactionModal } from './components/TransactionModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { SubCategoryManagerModal } from './components/SubCategoryManagerModal';
 import { CategoryDetailModal } from './components/CategoryDetailModal';
 import { ExportModal } from './components/ExportModal';
 import { PdfReportModal } from './components/PdfReportModal';
+import { AuthModal } from './components/AuthModal';
+import { SavingsGoalModal } from './components/SavingsGoalModal';
 import { FooterNotes } from './components/FooterNotes';
 import { ToastContainer } from './components/ToastContainer';
+import { buildUserCategories, generateUserTransactions } from './utils/userBudgetGenerator';
 
 export default function App() {
   // Theme state: dark | light with persistence
@@ -87,7 +91,29 @@ export default function App() {
   const [language, setLanguage] = useState<Language>('fr');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // User profiles and active user session state
+  const [savedProfiles, setSavedProfiles] = useState<UserProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('felladina_users');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('felladina_active_user');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
   // Modal States
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -100,6 +126,39 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [modalPreselectedDate, setModalPreselectedDate] = useState<string | undefined>(undefined);
   const [modalPreselectedCategory, setModalPreselectedCategory] = useState<string | undefined>(undefined);
+
+  // Savings Goals & Surplus Allocation State
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>(() => {
+    try {
+      const saved = localStorage.getItem('felladina_savings_goals');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return INITIAL_SAVINGS_GOALS;
+  });
+
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+  const [goalModalMode, setGoalModalMode] = useState<'create' | 'edit' | 'allocate'>('create');
+
+  const handleOpenAddGoal = () => {
+    setEditingGoal(null);
+    setGoalModalMode('create');
+    setIsGoalModalOpen(true);
+  };
+
+  const handleOpenEditGoal = (goal: SavingsGoal) => {
+    setEditingGoal(goal);
+    setGoalModalMode('edit');
+    setIsGoalModalOpen(true);
+  };
+
+  const handleOpenAllocateSurplus = (goal: SavingsGoal) => {
+    setEditingGoal(goal);
+    setGoalModalMode('allocate');
+    setIsGoalModalOpen(true);
+  };
 
   const handleOpenAddModalWithDate = (date: string) => {
     setEditingTransaction(null);
@@ -251,13 +310,189 @@ export default function App() {
     }
   }, [subCategories]);
 
+  // Sync savings goals to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('felladina_savings_goals', JSON.stringify(savingsGoals));
+    } catch {
+      // ignore
+    }
+  }, [savingsGoals]);
+
+  // Savings Goal Handlers
+  const handleSaveGoal = (goalToSave: SavingsGoal) => {
+    const isEdit = savingsGoals.some((g) => g.id === goalToSave.id);
+    if (isEdit) {
+      setSavingsGoals((prev) => prev.map((g) => (g.id === goalToSave.id ? goalToSave : g)));
+      addToast({
+        type: 'info',
+        title: 'Objectif d’épargne mis à jour',
+        titleDarija: 'Tbeddel l-hadaf d l-ittikhar',
+        message: `Le projet "${goalToSave.name}" a été mis à jour avec une cible de ${Math.round(goalToSave.targetAmount).toLocaleString('fr-FR')} ${currency}.`,
+        messageDarija: `L-hadaf "${goalToSave.nameDarija || goalToSave.name}" tbeddel b nja7.`,
+        durationMs: 4000,
+      });
+    } else {
+      setSavingsGoals((prev) => [goalToSave, ...prev]);
+      addToast({
+        type: 'success',
+        title: 'Nouvel objectif créé',
+        titleDarija: 'Tzad hadaf jdid',
+        message: `Le projet "${goalToSave.name}" a été ajouté avec une cible de ${Math.round(goalToSave.targetAmount).toLocaleString('fr-FR')} ${currency}.`,
+        messageDarija: `L-hadaf "${goalToSave.nameDarija || goalToSave.name}" tzad b nja7.`,
+        durationMs: 4500,
+      });
+    }
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    const goal = savingsGoals.find((g) => g.id === goalId);
+    setSavingsGoals((prev) => prev.filter((g) => g.id !== goalId));
+    if (goal) {
+      addToast({
+        type: 'info',
+        title: 'Objectif supprimé',
+        titleDarija: 'T-mssa7 l-hadaf',
+        message: `Le projet "${goal.name}" a été retiré de vos objectifs.`,
+        messageDarija: `L-hadaf "${goal.nameDarija || goal.name}" thiyyed.`,
+        durationMs: 3500,
+      });
+    }
+  };
+
+  const handleAllocateSurplus = (goalId: string, amount: number, note?: string) => {
+    const goal = savingsGoals.find((g) => g.id === goalId);
+    if (!goal) return;
+
+    const newAmount = goal.currentAmount + amount;
+    const newProgress = Math.min(100, Math.round((newAmount / goal.targetAmount) * 100));
+
+    setSavingsGoals((prev) =>
+      prev.map((g) => (g.id === goalId ? { ...g, currentAmount: newAmount } : g))
+    );
+
+    addToast({
+      type: 'success',
+      title: 'Surplus mensuel alloué',
+      titleDarija: 'T-alloua l-fadl b nja7',
+      message: `+${Math.round(amount).toLocaleString('fr-FR')} ${currency} alloués au projet "${goal.name}". Avancement : ${newProgress}%.`,
+      messageDarija: `+${Math.round(amount).toLocaleString('fr-FR')} ${currency} tzado l "${goal.nameDarija || goal.name}".`,
+      durationMs: 5000,
+    });
+  };
+
+  const handleQuickAllocate = (goalId: string, amount: number) => {
+    handleAllocateSurplus(goalId, amount);
+  };
+
+  // Registration & Onboarding success handler
+  const handleRegisterSuccess = (profile: UserProfile) => {
+    const updatedProfiles = [...savedProfiles.filter((p) => p.id !== profile.id), profile];
+    setSavedProfiles(updatedProfiles);
+    setCurrentUser(profile);
+    setCurrency(profile.currency);
+
+    const userCategories = buildUserCategories(profile.expenses);
+    const userTransactions = generateUserTransactions(profile);
+
+    setCategories(userCategories);
+    setTransactions(userTransactions);
+    setSelectedCategory('all');
+
+    try {
+      localStorage.setItem('felladina_users', JSON.stringify(updatedProfiles));
+      localStorage.setItem('felladina_active_user', JSON.stringify(profile));
+      localStorage.setItem(`felladina_tx_${profile.id}`, JSON.stringify(userTransactions));
+      localStorage.setItem(`felladina_cat_${profile.id}`, JSON.stringify(userCategories));
+    } catch {
+      // ignore
+    }
+
+    addToast({
+      type: 'success',
+      title: `Bienvenue, ${profile.name} !`,
+      titleDarija: `Marhba bik, ${profile.name} !`,
+      message: `Votre profil financier a été configuré avec succès. Tous vos calculs (KPIs, cascade de trésorerie, alertes et prévisions sur 3 mois) sont maintenant calculés à partir de vos propres revenus et charges.`,
+      messageDarija: `L-mizaniya dyalek t-hassbat b nja7 b l-flous li 3titi.`,
+      durationMs: 6500,
+    });
+  };
+
+  // Login existing user handler
+  const handleLoginSuccess = (profile: UserProfile) => {
+    setCurrentUser(profile);
+    setCurrency(profile.currency);
+
+    try {
+      localStorage.setItem('felladina_active_user', JSON.stringify(profile));
+      const savedTx = localStorage.getItem(`felladina_tx_${profile.id}`);
+      const savedCat = localStorage.getItem(`felladina_cat_${profile.id}`);
+
+      if (savedTx && savedCat) {
+        setTransactions(JSON.parse(savedTx));
+        setCategories(JSON.parse(savedCat));
+      } else {
+        const userCategories = buildUserCategories(profile.expenses);
+        const userTransactions = generateUserTransactions(profile);
+        setCategories(userCategories);
+        setTransactions(userTransactions);
+      }
+    } catch {
+      const userCategories = buildUserCategories(profile.expenses);
+      const userTransactions = generateUserTransactions(profile);
+      setCategories(userCategories);
+      setTransactions(userTransactions);
+    }
+
+    setSelectedCategory('all');
+
+    addToast({
+      type: 'info',
+      title: `Session chargée : ${profile.name}`,
+      titleDarija: `Marhba b rjou3ek, ${profile.name}`,
+      message: `Votre tableau de bord a été actualisé avec vos données de revenus et de dépenses enregistrées.`,
+      messageDarija: `L-ma3loumat d l-7ssab dyalek t-charjaw b nja7.`,
+      durationMs: 4000,
+    });
+  };
+
+  // Logout / Switch User handler
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('felladina_active_user');
+    } catch {
+      // ignore
+    }
+    addToast({
+      type: 'info',
+      title: 'Déconnexion effectuée',
+      titleDarija: 'Khrjti mn l-7ssab',
+      message: 'Vous pouvez vous reconnecter à tout moment ou continuer en mode démo.',
+      messageDarija: 'Rak daba f mode consultation.',
+      durationMs: 3500,
+    });
+  };
+
   // Reset data handler
   const handleResetData = () => {
     if (window.confirm('Voulez-vous réinitialiser les données de démonstration ?')) {
+      setCurrentUser(null);
+      try {
+        localStorage.removeItem('felladina_active_user');
+      } catch {
+        // ignore
+      }
       setTransactions(INITIAL_TRANSACTIONS);
       setCategories(INITIAL_CATEGORIES);
       setSubCategories(INITIAL_SUB_CATEGORIES);
+      setSavingsGoals(INITIAL_SAVINGS_GOALS);
       setSelectedCategory('all');
+      try {
+        localStorage.removeItem('felladina_savings_goals');
+      } catch {
+        // ignore
+      }
       addToast({
         type: 'info',
         title: 'Données réinitialisées',
@@ -449,6 +684,11 @@ export default function App() {
         onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
         onOpenSubCategoryManager={() => handleOpenSubCategoryManager()}
         onResetData={handleResetData}
+        currentUser={currentUser}
+        onOpenSignUp={() => setIsAuthModalOpen(true)}
+        onOpenSignIn={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
+        onEditProfile={() => setIsAuthModalOpen(true)}
       />
 
       {/* Main Container */}
@@ -459,6 +699,8 @@ export default function App() {
           currency={currency}
           language={language}
           selectedCategoryName={selectedCategoryName}
+          currentUser={currentUser}
+          onOpenSignUp={() => setIsAuthModalOpen(true)}
         />
 
         {/* 3 Executive Metric Cards */}
@@ -534,6 +776,20 @@ export default function App() {
           categories={categories}
           currency={currency}
           language={language}
+        />
+
+        {/* Section 06: Objectifs d'Épargne & Allocation du Surplus */}
+        <Section06SavingsGoals
+          goals={savingsGoals}
+          transactions={activeTransactions}
+          categories={categories}
+          currency={currency}
+          language={language}
+          onOpenAddGoalModal={handleOpenAddGoal}
+          onOpenEditGoalModal={handleOpenEditGoal}
+          onOpenAllocateSurplusModal={handleOpenAllocateSurplus}
+          onDeleteGoal={handleDeleteGoal}
+          onQuickAllocate={handleQuickAllocate}
         />
 
         {/* Footer notes strip */}
@@ -642,6 +898,34 @@ export default function App() {
             durationMs: 5000,
           });
         }}
+      />
+
+      {/* Sign Up & Financial Setup Wizard Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onRegisterSuccess={handleRegisterSuccess}
+        onLoginSuccess={handleLoginSuccess}
+        language={language}
+        currentCurrency={currency}
+        savedProfiles={savedProfiles}
+        activeProfileId={currentUser?.id}
+      />
+
+      {/* Savings Goal Definition & Surplus Allocation Modal */}
+      <SavingsGoalModal
+        isOpen={isGoalModalOpen}
+        onClose={() => {
+          setIsGoalModalOpen(false);
+          setEditingGoal(null);
+        }}
+        onSave={handleSaveGoal}
+        onAllocateSurplus={handleAllocateSurplus}
+        editingGoal={editingGoal}
+        mode={goalModalMode}
+        monthlySurplus={Math.max(0, netSavings)}
+        currency={currency}
+        language={language}
       />
 
       {/* Real-time Toast Notifications */}

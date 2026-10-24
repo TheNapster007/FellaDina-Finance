@@ -1,12 +1,14 @@
 import React from 'react';
-import { PeriodFilter, Currency, Language } from '../types';
-import { Filter } from 'lucide-react';
+import { PeriodFilter, Currency, Language, UserProfile } from '../types';
+import { Filter, Sparkles, User, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface HeroHeaderProps {
   period: PeriodFilter;
   currency: Currency;
   language: Language;
   selectedCategoryName: string;
+  currentUser?: UserProfile | null;
+  onOpenSignUp?: () => void;
 }
 
 export const HeroHeader: React.FC<HeroHeaderProps> = ({
@@ -14,6 +16,8 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
   currency,
   language,
   selectedCategoryName,
+  currentUser,
+  onOpenSignUp,
 }) => {
   return (
     <section className="mb-8 pt-2">
@@ -66,8 +70,8 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
           : "Une vue unifiée des métriques essentielles — dynamique des rentrées (kandkhel), maîtrise des dépenses (kankhser) et capacité d'épargne nette — comparées au budget prévisionnel."}
       </p>
 
-      {/* Filter status pill matching screenshot */}
-      <div className="mt-4 flex items-center">
+      {/* Filter status pill & User Badge */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-[#1E1D19]/80 border border-[#DDD6C8] dark:border-[#38342D] rounded-full text-xs text-[#5E5549] dark:text-[#B6AEA3] shadow-2xs">
           <Filter className="w-3.5 h-3.5 text-[#A24824] dark:text-[#D96B43]" />
           <span>
@@ -77,6 +81,24 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
             {period} · {selectedCategoryName} · {currency === 'MAD' ? 'Dirham Marocain (MAD)' : currency}
           </span>
         </div>
+
+        {currentUser ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E8F1EC] dark:bg-[#1C2C24] border border-[#BFD9CB] dark:border-[#2A4438] rounded-full text-xs text-[#2A614A] dark:text-[#67BE96] font-medium shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#3B6B55]" />
+            <span>
+              Espace actif : <strong>{currentUser.name}</strong> · Calculs personnalisés
+            </span>
+          </div>
+        ) : onOpenSignUp ? (
+          <button
+            onClick={onOpenSignUp}
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FAF4F0] dark:bg-[#2A211D] hover:bg-[#F4E6DE] dark:hover:bg-[#342721] border border-[#E4D1C5] dark:border-[#4B2F23] rounded-full text-xs text-[#A24824] dark:text-[#E8734C] font-semibold transition-all shadow-2xs"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Calculer avec mes propres revenus & dépenses</span>
+            <ArrowRight className="w-3 h-3 ml-0.5" />
+          </button>
+        ) : null}
       </div>
     </section>
   );
