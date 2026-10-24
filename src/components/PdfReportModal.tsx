@@ -73,7 +73,7 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const statementRef = `MIZAN-STMT-${selectedMonth.replace('-', '')}-8429`;
+  const statementRef = `FELLADINA-STMT-${selectedMonth.replace('-', '')}-8429`;
 
   const options: PdfStatementOptions = {
     month: selectedMonth,
@@ -104,7 +104,7 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
 
   const handleDownloadHtml = () => {
     const html = generateStatementHtml(statementData, options, currency, language);
-    const filename = `Mizan_Releve_${selectedMonth}_${clientName.replace(/\s+/g, '_')}.html`;
+    const filename = `Felladina_Finance_Releve_${selectedMonth}_${clientName.replace(/\s+/g, '_')}.html`;
     downloadStatementHtml(html, filename);
     if (onReportGenerated) {
       onReportGenerated(currentMonthLabel);
@@ -276,11 +276,11 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b-2 border-[#231F1C]">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#A24824] text-white flex items-center justify-center font-serif font-black text-xl shrink-0 shadow-xs">
-                  M
+                  F
                 </div>
                 <div>
                   <h1 className="font-serif font-bold text-2xl text-[#1E1B18] tracking-tight">
-                    MIZAN · RELEVÉ FINANCIER MENSUEL
+                    FELLADINA FINANCE · RELEVÉ FINANCIER MENSUEL
                   </h1>
                   <p className="text-[10px] uppercase font-semibold tracking-wider text-[#736A5D]">
                     Executive Treasury & Wealth Management Statement
@@ -518,7 +518,7 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
                       Certificat d'Authenticité & Empreinte Numérique
                     </div>
                     <div className="text-[10px] text-[#6B6356]">
-                      Arrêté conforme aux écritures certifiées Mizan. ID: SHA256:{selectedMonth.replace('-', '')}-{statementData.totalTransactionsCount}-CERTIFIED
+                      Arrêté conforme aux écritures certifiées Felladina Finance. ID: SHA256:{selectedMonth.replace('-', '')}-{statementData.totalTransactionsCount}-CERTIFIED
                     </div>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export const PdfReportModal: React.FC<PdfReportModalProps> = ({
 
             {/* Document Baseline Footer */}
             <div className="mt-6 pt-3 border-t border-[#ECE7DE] flex justify-between text-[9.5px] text-[#8C8375]">
-              <span>Mizan Financial Intelligence Statement · Document confidentiel</span>
+              <span>Felladina Finance · Relevé de Trésorerie Officiel</span>
               <span>Rapport généré le {new Date().toLocaleDateString('fr-FR')}</span>
             </div>
           </div>

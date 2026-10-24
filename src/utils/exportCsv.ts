@@ -1,10 +1,11 @@
-import { Transaction, CategoryBudget, Currency, Language } from '../types';
+import { Transaction, CategoryBudget, SubCategory, Currency, Language } from '../types';
 
 export interface ExportOptions {
   includeBudgets?: boolean;
   includeTransactions?: boolean;
   includeMonthlySummary?: boolean;
   delimiter?: ';' | ',';
+  subCategories?: SubCategory[];
 }
 
 function escapeCsvCell(val: string | number | undefined | null, delimiter: string): string {
@@ -44,7 +45,7 @@ export function exportFinancialDataToCsv(
   const netSavings = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
-  lines.push(esc('RAPPORT FINANCIER & SAUVEGARDE MIZAN'));
+  lines.push(esc('RAPPORT FINANCIER & SAUVEGARDE FELLADINA FINANCE'));
   lines.push([esc('Date d\'exportation'), esc(`${dateStr} à ${timeStr}`)].join(delimiter));
   lines.push([esc('Devise'), esc(currency === 'MAD' ? 'MAD (Dirhams marocains)' : currency)].join(delimiter));
   lines.push([esc('Total Revenus (Entrées)'), esc(totalIncome.toFixed(2))].join(delimiter));
@@ -111,10 +112,12 @@ export function exportFinancialDataToCsv(
       'Type Opération',
       'Catégorie ID',
       'Catégorie Nom',
+      'Sous-Catégorie',
       `Montant (${currency})`,
       'Mode de Règlement',
       'Tiers / Bénéficiaire / Source',
       'Description / Remarques',
+      'Articles Détaillés (Reçu)',
     ];
     lines.push(txHeaders.map(esc).join(delimiter));
 
@@ -124,6 +127,9 @@ export function exportFinancialDataToCsv(
     sortedTxs.forEach((tx) => {
       const cat = categories.find((c) => c.id === tx.category);
       const catName = cat ? cat.label : tx.category;
+      const sub = (options.subCategories || []).find((s) => s.id === tx.subCategory);
+      const subName = sub ? sub.name : tx.subCategory || '';
+      const itemsList = tx.items?.map((it) => `${it.name} (x${it.quantity || 1}: ${it.totalPrice}DH)`).join(' | ') || '';
 
       const row = [
         tx.id,
@@ -131,10 +137,12 @@ export function exportFinancialDataToCsv(
         tx.type === 'income' ? 'Revenu (+)' : 'Dépense (-)',
         tx.category,
         catName,
+        subName,
         (tx.type === 'income' ? tx.amount : -tx.amount).toFixed(2),
         tx.paymentMethod,
         tx.recipientOrSource || '',
         tx.note,
+        itemsList,
       ];
       lines.push(row.map(esc).join(delimiter));
     });
@@ -181,7 +189,7 @@ export function exportFinancialDataToCsv(
   // Combine with UTF-8 BOM so Excel opens accents without weird characters
   const csvContent = '\uFEFF' + lines.join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const filename = `mizan_export_budgets_transactions_${dateStr}.csv`;
+  const filename = `felladina_finance_export_budgets_transactions_${dateStr}.csv`;
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

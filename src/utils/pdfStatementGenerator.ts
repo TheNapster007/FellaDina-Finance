@@ -274,7 +274,7 @@ export function generateStatementHtml(
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Relevé Financier Mizan - ${data.monthStr} - ${escapeHtml(options.clientName)}</title>
+  <title>Relevé Financier Felladina Finance - ${data.monthStr} - ${escapeHtml(options.clientName)}</title>
   <style>
     @page {
       size: A4 portrait;
@@ -384,10 +384,10 @@ export function generateStatementHtml(
     <div class="header-bar">
       <div>
         <div style="display: flex; items-center; gap: 8px;">
-          <span class="brand-logo">M</span>
+          <span class="brand-logo">F</span>
           <div style="display: inline-block; vertical-align: middle;">
             <div class="serif-title" style="font-size: 20px; font-weight: bold; color: #231F1C; letter-spacing: -0.02em;">
-              MIZAN · RELEVÉ FINANCIER MENSUEL
+              FELLADINA FINANCE · RELEVÉ FINANCIER MENSUEL
             </div>
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #7F776B; font-weight: 600;">
               Executive Treasury & Wealth Management Statement
@@ -529,10 +529,10 @@ export function generateStatementHtml(
             Certificat de Clôture & Attestation de Sincérité
           </div>
           <div style="font-size: 10px; color: #6D665B; margin-top: 4px; max-width: 440px;">
-            Le présent relevé de trésorerie a été généré via le moteur de conciliation Mizan. Les soldes et imputations reflètent fidèlement les écritures enregistrées pour l'exercice concerné.
+            Le présent relevé de trésorerie a été généré via le moteur de conciliation Felladina Finance. Les soldes et imputations reflètent fidèlement les écritures enregistrées pour l'exercice concerné.
           </div>
           <div style="margin-top: 8px; font-family: monospace; font-size: 9px; color: #8A8071;">
-            EMPREINTE DE VÉRIFICATION : SHA256:${data.monthStr.replace('-', '')}${data.totalTransactionsCount}${Math.round(data.totalIncome)}-CERTIFIED-MIZAN
+            EMPREINTE DE VÉRIFICATION : SHA256:${data.monthStr.replace('-', '')}${data.totalTransactionsCount}${Math.round(data.totalIncome)}-CERTIFIED-FELLADINA
           </div>
         </div>
         <div style="text-align: center; border-top: 1px solid #7F776B; width: 170px; padding-top: 6px;">
@@ -549,7 +549,7 @@ export function generateStatementHtml(
 
     <!-- Footer -->
     <div style="margin-top: 24px; padding-top: 8px; border-top: 1px solid #ECE7DE; display: flex; justify-content: space-between; font-size: 9px; color: #8C8275;">
-      <span>Mizan Private Wealth & Budget Engine · Document à valeur de déclaration financière</span>
+      <span>Felladina Finance & Budget Engine · Document à valeur de déclaration financière</span>
       <span>Page 1 / 1 · Généré le ${printTimestamp}</span>
     </div>
   </div>

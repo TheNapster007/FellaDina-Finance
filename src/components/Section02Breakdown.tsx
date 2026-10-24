@@ -10,6 +10,7 @@ interface Section02BreakdownProps {
   language: Language;
   onSelectCategory?: (id: string) => void;
   selectedCategory?: string;
+  onOpenCategoryDetail?: (categoryId: string) => void;
 }
 
 export const Section02Breakdown: React.FC<Section02BreakdownProps> = ({
@@ -19,6 +20,7 @@ export const Section02Breakdown: React.FC<Section02BreakdownProps> = ({
   language,
   onSelectCategory,
   selectedCategory,
+  onOpenCategoryDetail,
 }) => {
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
 
@@ -110,6 +112,28 @@ export const Section02Breakdown: React.FC<Section02BreakdownProps> = ({
             : 'Diagramme circulaire dynamique calculé à partir de vos transactions enregistrées.'}
         </span>
       </div>
+
+      {selectedCategory && selectedCategory !== 'all' && onOpenCategoryDetail && (
+        <div className="mb-4 p-3 bg-white dark:bg-[#1E1D19] rounded-xl border border-[#E5E0D5] dark:border-[#312E28] flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#25201B] dark:text-[#F2EFEA]">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#A24824]" />
+            <span>
+              {language === 'ar_ma' ? 'Catégorie li m-sélectionniya :' : 'Poste filtré :'}
+            </span>
+            <span className="font-bold text-[#A24824] dark:text-[#E8734C]">
+              {language === 'ar_ma'
+                ? categories.find((c) => c.id === selectedCategory)?.labelDarija
+                : categories.find((c) => c.id === selectedCategory)?.label}
+            </span>
+          </div>
+          <button
+            onClick={() => onOpenCategoryDetail(selectedCategory)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FAF0E6] dark:bg-[#3D251D] text-[#A24824] dark:text-[#E8734C] hover:bg-[#F5E2D4] rounded-lg text-xs font-bold transition-colors"
+          >
+            <span>{language === 'ar_ma' ? 'Chof les détails w les sous-catégories →' : 'Inspecter sous-catégories & articles →'}</span>
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Left Column: Interactive Category Pie/Donut Chart */}

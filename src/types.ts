@@ -18,10 +18,20 @@ export interface TransactionItem {
   totalPrice: number;
 }
 
+export interface SubCategory {
+  id: string;
+  categoryId: string; // ID of the parent CategoryBudget (e.g. 'alimentation', 'transport')
+  name: string;
+  nameDarija?: string;
+  color?: string;
+  isCustom?: boolean;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
   category: string;
+  subCategory?: string; // ID of the subcategory
   amount: number;
   date: string; // ISO YYYY-MM-DD
   note: string;
@@ -39,6 +49,7 @@ export interface CategoryBudget {
   allocatedBudget: number;
   color: string;
   icon: string;
+  isCustom?: boolean;
 }
 
 export interface MonthlyDataPoint {

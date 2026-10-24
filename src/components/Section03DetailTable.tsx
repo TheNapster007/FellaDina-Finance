@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { Transaction, CategoryBudget, Currency, Language } from '../types';
-import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileSpreadsheet, FileText } from 'lucide-react';
+import { Transaction, CategoryBudget, SubCategory, Currency, Language } from '../types';
+import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileText, Layers, Tag, Receipt, ChevronDown, ChevronRight, Eye, FolderPlus } from 'lucide-react';
 import { exportFinancialDataToCsv } from '../utils/exportCsv';
 
 interface Section03DetailTableProps {
   categories: CategoryBudget[];
   transactions: Transaction[];
+  subCategories: SubCategory[];
   currency: Currency;
   language: Language;
   onOpenAddModal: () => void;
   onOpenExportModal?: () => void;
   onOpenPdfModal?: () => void;
+  onOpenCategoryDetail?: (categoryId: string) => void;
+  onOpenCategoryManager?: () => void;
+  onOpenSubCategoryManager?: (categoryId?: string) => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
@@ -18,24 +22,35 @@ interface Section03DetailTableProps {
 export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
   categories,
   transactions,
+  subCategories,
   currency,
   language,
   onOpenAddModal,
   onOpenExportModal,
   onOpenPdfModal,
+  onOpenCategoryDetail,
+  onOpenCategoryManager,
+  onOpenSubCategoryManager,
   onEditTransaction,
   onDeleteTransaction,
 }) => {
   const [activeTab, setActiveTab] = useState<'categories' | 'transactions'>('categories');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterSubCategory, setFilterSubCategory] = useState<string>('all');
+  const [expandedTxIds, setExpandedTxIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedTxIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Compute spend per category from transactions
   const categoryStats = categories.map((cat) => {
     const txList = transactions.filter((t) => t.category === cat.id);
     const totalSpent = txList.reduce((acc, t) => acc + t.amount, 0);
     const attainment = cat.allocatedBudget > 0 ? (totalSpent / cat.allocatedBudget) * 100 : 100;
-    
+    const catSubCount = subCategories.filter((s) => s.categoryId === cat.id).length;
+
     // Status assessment
     let status: 'on_track' | 'watch' | 'at_risk' = 'on_track';
     if (cat.type === 'expense') {
@@ -57,20 +72,30 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
       attainment,
       status,
       qoq,
+      catSubCount,
     };
   });
 
   // Filtered transactions for the journal
   const filteredTransactions = transactions.filter((t) => {
     const matchesType = filterType === 'all' || t.type === filterType;
+    const matchesSub = filterSubCategory === 'all' || t.subCategory === filterSubCategory;
+
+    const sub = subCategories.find((s) => s.id === t.subCategory);
+    const subName = sub ? sub.name.toLowerCase() : '';
+    const itemMatch = t.items?.some((it) => it.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const matchesSearch =
       t.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.recipientOrSource && t.recipientOrSource.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesType && matchesSearch;
+      subName.includes(searchQuery.toLowerCase()) ||
+      Boolean(itemMatch) ||
+      Boolean(t.recipientOrSource && t.recipientOrSource.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesType && matchesSub && matchesSearch;
   });
 
-  // Export to CSV (combines both transactions and budget settings)
+  // Export to CSV
   const handleExportCSV = () => {
     if (onOpenExportModal) {
       onOpenExportModal();
@@ -87,22 +112,20 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
           <span className="font-serif italic text-sm text-[#A24824] dark:text-[#E8734C] font-semibold">03</span>
           <span>
             {language === 'ar_ma'
-              ? 'Tafassil — b l&apos;asnâaf w l&apos;opérations'
+              ? 'Tafassil — b l&apos;asnâaf, sous-catégories w opérations'
               : language === 'en'
-              ? 'The detail — by product line'
-              : 'Le détail — par poste & transactions'}
+              ? 'The detail — by product line & subcategories'
+              : 'Le détail — par poste, sous-catégorie & transactions'}
           </span>
         </h2>
         <span className="text-xs text-[#7F7668] dark:text-[#9A9184] max-w-md text-right hidden sm:block">
           {language === 'ar_ma'
-            ? 'Warra9 3la ay sttar bach tchof les détails wla tbeddel.'
-            : language === 'en'
-            ? 'Click any row to expand underlying metrics for that line.'
-            : 'Cliquez sur une ligne pour inspecter ou filtrer par catégorie.'}
+            ? 'Warra9 3la ay sttar bach tchof les sous-catégories w les articles (Atay, Sokar, Hlib...)'
+            : 'Cliquez sur un poste pour inspecter ses sous-catégories et les articles achetés.'}
         </span>
       </div>
 
-      {/* Main Container Card matching screenshot */}
+      {/* Main Container Card */}
       <div className="bg-white dark:bg-[#1E1D19] rounded-xl border border-[#E5E0D5] dark:border-[#312E28] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden transition-colors">
         {/* Table Toolbar & Tab Selector */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-b border-[#EBE6DC] dark:border-[#312E28] bg-[#FAF8F5] dark:bg-[#24221E]">
@@ -135,14 +158,41 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2">
+            {onOpenCategoryManager && (
+              <button
+                onClick={onOpenCategoryManager}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#26241F] border border-[#D5CDBC] dark:border-[#3D382F] hover:border-[#BEB4A2] text-[#4A4237] dark:text-[#E8E4DC] rounded-lg text-xs font-medium transition-colors"
+                title="Gérer et créer de nouvelles catégories de budget"
+              >
+                <FolderPlus className="w-3.5 h-3.5 text-[#A24824] dark:text-[#E8734C]" />
+                <span className="hidden md:inline">
+                  {language === 'ar_ma' ? 'Catégories' : 'Catégories'}
+                </span>
+              </button>
+            )}
+
+            {onOpenSubCategoryManager && (
+              <button
+                onClick={() => onOpenSubCategoryManager()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#26241F] border border-[#D5CDBC] dark:border-[#3D382F] hover:border-[#BEB4A2] text-[#4A4237] dark:text-[#E8E4DC] rounded-lg text-xs font-medium transition-colors"
+                title="Gérer les sous-catégories personnalisées"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#A24824] dark:text-[#E8734C]" />
+                <span className="hidden md:inline">
+                  {language === 'ar_ma' ? 'Gérer sous-catégories' : 'Sous-Catégories'}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={handleExportCSV}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#26241F] border border-[#D5CDBC] dark:border-[#3D382F] text-[#4A4237] dark:text-[#E8E4DC] hover:text-[#2B2621] dark:hover:text-[#FFFFFF] hover:border-[#BDB39E] dark:hover:border-[#524B3F] rounded-lg text-xs font-medium transition-colors"
               title="Exporter vers Excel (Transactions et Budgets)"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Exporter CSV</span>
+              <span className="hidden sm:inline">CSV</span>
             </button>
+
             {onOpenPdfModal && (
               <button
                 onClick={onOpenPdfModal}
@@ -150,9 +200,10 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                 title="Générer un rapport PDF / Relevé officiel"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Rapport PDF</span>
+                <span className="hidden sm:inline">PDF</span>
               </button>
             )}
+
             <button
               onClick={onOpenAddModal}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
@@ -163,7 +214,7 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
           </div>
         </div>
 
-        {/* View 1: Exact replica of the screenshot's table */}
+        {/* View 1: Categories Synthesis Tab */}
         {activeTab === 'categories' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -176,16 +227,16 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                     {language === 'ar_ma' ? 'Montant' : 'Montant Engagé'}
                   </th>
                   <th className="py-3 px-4 text-center">
-                    {language === 'ar_ma' ? 'Tendance' : 'QoQ'}
+                    {language === 'ar_ma' ? 'Sous-Catégories' : 'Sous-Catégories'}
                   </th>
                   <th className="py-3 px-6 text-left">
-                    {language === 'ar_ma' ? 'Atteinte l&apos;hadaf' : 'Attainment vs. Target'}
+                    {language === 'ar_ma' ? 'Atteinte l&apos;hadaf' : 'Consommation Budget'}
                   </th>
                   <th className="py-3 px-4 text-right">
-                    {language === 'ar_ma' ? 'Ratio' : 'Poids'}
+                    {language === 'ar_ma' ? 'Plafond' : 'Plafond'}
                   </th>
                   <th className="py-3 px-5 text-center">
-                    {language === 'ar_ma' ? 'Hala' : 'Statut'}
+                    {language === 'ar_ma' ? 'Détails' : 'Action'}
                   </th>
                 </tr>
               </thead>
@@ -196,10 +247,7 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                     <tr
                       key={item.id}
                       className="hover:bg-[#FAF8F3] dark:hover:bg-[#26231E] transition-colors group cursor-pointer"
-                      onClick={() => {
-                        setSearchQuery(item.id);
-                        setActiveTab('transactions');
-                      }}
+                      onClick={() => onOpenCategoryDetail && onOpenCategoryDetail(item.id)}
                     >
                       {/* Product line / Category */}
                       <td className="py-3.5 px-5 font-medium flex items-center gap-2.5">
@@ -208,134 +256,185 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                           style={{ backgroundColor: item.color }}
                         />
                         <div>
-                          <div className="font-semibold text-[#25201B] dark:text-[#F2EFEA] group-hover:text-[#A24824] dark:group-hover:text-[#E8734C] transition-colors">
-                            {language === 'ar_ma' ? item.labelDarija : item.label}
+                          <div className="font-semibold text-[#25201B] dark:text-[#F2EFEA] group-hover:text-[#A24824] dark:group-hover:text-[#E8734C] transition-colors flex items-center gap-1.5">
+                            <span>{language === 'ar_ma' ? item.labelDarija : item.label}</span>
+                            {item.isCustom && (
+                              <span className="text-[9px] uppercase font-semibold px-1 py-0.2 bg-[#FAF0E6] dark:bg-[#342721] text-[#A24824] dark:text-[#E8734C] rounded border border-[#EAD5C5] dark:border-[#4D3328]">
+                                {language === 'ar_ma' ? 'Jdid' : 'Custom'}
+                              </span>
+                            )}
                           </div>
                           <div className="text-[10px] text-[#867C6E] dark:text-[#9A9184]">
-                            {item.type === 'income' ? '↗ Rentrée' : '↘ Dépense'} · Budget:{' '}
-                            {(item.allocatedBudget / 1000).toFixed(1)}k
+                            {item.type === 'income' ? '↗ Rentrée' : '↘ Dépense'}
                           </div>
                         </div>
                       </td>
 
                       {/* Revenue / Amount */}
                       <td className="py-3.5 px-4 text-right font-mono font-semibold tabular-nums text-[#25201B] dark:text-[#F2EFEA]">
-                        {(item.totalSpent / 1000).toFixed(1)}k {currency === 'MAD' ? 'DH' : currency}
+                        {Math.round(item.totalSpent).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
                       </td>
 
-                      {/* QoQ */}
-                      <td className="py-3.5 px-4 text-center font-mono text-[11px] text-[#6E6457] dark:text-[#9A9184] tabular-nums">
-                        {item.qoq}
+                      {/* Subcategories count badge */}
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onOpenCategoryDetail) onOpenCategoryDetail(item.id);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F4EFE6] dark:bg-[#2B2822] hover:bg-[#EAE4D7] text-[#554B3E] dark:text-[#C5BEB3] text-[11px] font-semibold transition-colors"
+                        >
+                          <Layers className="w-3 h-3 text-[#A24824] dark:text-[#E8734C]" />
+                          <span>{item.catSubCount} sous-cat.</span>
+                        </button>
                       </td>
 
-                      {/* Attainment vs target with visual horizontal bar matching screenshot */}
-                      <td className="py-3.5 px-6 min-w-[200px]">
+                      {/* Attainment vs target */}
+                      <td className="py-3.5 px-6 min-w-[180px]">
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-xs font-semibold tabular-nums w-10 text-right text-[#25201B] dark:text-[#F2EFEA]">
                             {Math.round(item.attainment)}%
                           </span>
                           <div className="flex-1 h-1.5 bg-[#EAE5D9] dark:bg-[#343029] rounded-full overflow-hidden">
                             <div
-                              style={{
-                                width: `${percent}%`,
-                                backgroundColor:
-                                  item.status === 'on_track'
-                                    ? '#4F6D5B'
-                                    : item.status === 'watch'
-                                    ? '#C67551'
-                                    : '#A24824',
-                              }}
-                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${percent}%` }}
+                              className={`h-full rounded-full ${
+                                item.type === 'expense'
+                                  ? percent > 100
+                                    ? 'bg-[#A24824]'
+                                    : percent > 80
+                                    ? 'bg-[#C67551]'
+                                    : 'bg-[#557C67]'
+                                  : 'bg-[#3B6B55]'
+                              }`}
                             />
                           </div>
                         </div>
                       </td>
 
-                      {/* NRR / Weight */}
-                      <td className="py-3.5 px-4 text-right font-mono text-xs text-[#6A6052] dark:text-[#A69E91] tabular-nums">
-                        {Math.round((item.totalSpent / (item.allocatedBudget || 1)) * 105)}%
+                      {/* Allocated Budget */}
+                      <td className="py-3.5 px-4 text-right font-mono text-xs tabular-nums text-[#6E6457] dark:text-[#9A9184]">
+                        {Math.round(item.allocatedBudget).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
                       </td>
 
-                      {/* Status */}
+                      {/* Action to drill down */}
                       <td className="py-3.5 px-5 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold capitalize ${
-                            item.status === 'on_track'
-                              ? 'bg-[#EAF1EB] dark:bg-[#1E3325] text-[#2C623E] dark:text-[#52A36F]'
-                              : item.status === 'watch'
-                              ? 'bg-[#F9EFE4] dark:bg-[#3A271B] text-[#9A5424] dark:text-[#E68A50]'
-                              : 'bg-[#FBEAE6] dark:bg-[#3D1E16] text-[#A24824] dark:text-[#F87171]'
-                          }`}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onOpenCategoryDetail) onOpenCategoryDetail(item.id);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-[#2A2722] border border-[#D5CDBC] dark:border-[#3D382F] hover:border-[#A24824] text-[#A24824] dark:text-[#E8734C] text-[11px] font-semibold rounded-lg transition-colors shadow-2xs"
                         >
-                          {item.status === 'on_track'
-                            ? language === 'ar_ma'
-                              ? 'Mazyan'
-                              : 'On track'
-                            : item.status === 'watch'
-                            ? language === 'ar_ma'
-                              ? 'Rad lbal'
-                              : 'Watch'
-                            : language === 'ar_ma'
-                            ? 'Khatar'
-                            : 'At risk'}
-                        </span>
+                          <Eye className="w-3 h-3" />
+                          <span>{language === 'ar_ma' ? 'Tafassil' : 'Détails'}</span>
+                        </button>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
+              {onOpenCategoryManager && (
+                <tfoot>
+                  <tr className="bg-[#FAF8F5] dark:bg-[#23211D] border-t border-[#EBE6DC] dark:border-[#312E28]">
+                    <td colSpan={6} className="py-3 px-5">
+                      <button
+                        onClick={onOpenCategoryManager}
+                        className="inline-flex items-center gap-2 text-xs font-semibold text-[#A24824] dark:text-[#E8734C] hover:underline cursor-pointer"
+                      >
+                        <FolderPlus className="w-4 h-4" />
+                        <span>
+                          {language === 'ar_ma'
+                            ? '+ Zid sinf / catégorie jdida aw beddel l-mizaniyat'
+                            : '+ Ajouter une nouvelle catégorie ou ajuster les budgets alloués'}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         )}
 
-        {/* View 2: Detailed Interactive Transactions Ledger */}
+        {/* View 2: Transactions Journal Tab */}
         {activeTab === 'transactions' && (
           <div>
-            {/* Search and filters bar */}
-            <div className="p-4 border-b border-[#EBE6DC] dark:border-[#312E28] flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#1E1D19]">
-              <div className="relative w-full sm:w-72">
-                <Search className="w-3.5 h-3.5 text-[#8A8071] dark:text-[#887F72] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {/* Search and Filters Bar */}
+            <div className="p-4 border-b border-[#EBE6DC] dark:border-[#312E28] bg-white dark:bg-[#1E1D19] flex flex-col md:flex-row items-center justify-between gap-3">
+              {/* Search input */}
+              <div className="relative w-full md:w-72">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C8375] dark:text-[#887F72]" />
                 <input
                   type="text"
-                  placeholder={language === 'ar_ma' ? 'Qlleb f l&apos;opérations...' : 'Rechercher une opération...'}
+                  placeholder={
+                    language === 'ar_ma'
+                      ? 'Qlleb f l&apos;opérations, articles (atay, sokar...)...'
+                      : 'Rechercher une opération ou article (Atay, Sucre...)...'
+                  }
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg text-[#25201B] dark:text-[#F2EFEA] placeholder-[#A49B8E] dark:placeholder-[#766E62] focus:outline-none focus:ring-1 focus:ring-[#A24824]"
                 />
               </div>
 
-              {/* Type pill filter */}
-              <div className="flex items-center gap-1.5 p-0.5 bg-[#EBE6DC] dark:bg-[#2C2923] rounded-lg text-xs self-stretch sm:self-auto">
-                <button
-                  onClick={() => setFilterType('all')}
-                  className={`flex-1 sm:flex-none px-3 py-1 rounded-md font-medium text-xs transition-all ${
-                    filterType === 'all'
-                      ? 'bg-white dark:bg-[#38342D] text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs font-semibold'
-                      : 'text-[#6A6052] dark:text-[#9A9184]'
-                  }`}
-                >
-                  Tous
-                </button>
-                <button
-                  onClick={() => setFilterType('income')}
-                  className={`flex-1 sm:flex-none px-3 py-1 rounded-md font-medium text-xs transition-all ${
-                    filterType === 'income'
-                      ? 'bg-white dark:bg-[#38342D] text-[#3B6B55] dark:text-[#52A36F] shadow-2xs font-semibold'
-                      : 'text-[#6A6052] dark:text-[#9A9184]'
-                  }`}
-                >
-                  ↗ Entrées
-                </button>
-                <button
-                  onClick={() => setFilterType('expense')}
-                  className={`flex-1 sm:flex-none px-3 py-1 rounded-md font-medium text-xs transition-all ${
-                    filterType === 'expense'
-                      ? 'bg-white dark:bg-[#38342D] text-[#A24824] dark:text-[#E8734C] shadow-2xs font-semibold'
-                      : 'text-[#6A6052] dark:text-[#9A9184]'
-                  }`}
-                >
-                  ↘ Dépenses
-                </button>
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                {/* SubCategory Filter Dropdown */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-[#6A6052] dark:text-[#9A9184]">
+                    Sous-catégorie:
+                  </span>
+                  <select
+                    value={filterSubCategory}
+                    onChange={(e) => setFilterSubCategory(e.target.value)}
+                    className="bg-[#FAF8F5] dark:bg-[#26241F] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg px-2.5 py-1 text-xs text-[#25201B] dark:text-[#F2EFEA] focus:outline-none focus:ring-1 focus:ring-[#A24824]"
+                  >
+                    <option value="all">Toutes les sous-catégories</option>
+                    {subCategories.map((sub) => {
+                      const parent = categories.find((c) => c.id === sub.categoryId);
+                      return (
+                        <option key={sub.id} value={sub.id}>
+                          {parent?.label} → {sub.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Type pill filter */}
+                <div className="flex items-center gap-1 p-0.5 bg-[#EBE6DC] dark:bg-[#2C2923] rounded-lg text-xs">
+                  <button
+                    onClick={() => setFilterType('all')}
+                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                      filterType === 'all'
+                        ? 'bg-white dark:bg-[#38342D] text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs font-semibold'
+                        : 'text-[#6A6052] dark:text-[#9A9184]'
+                    }`}
+                  >
+                    Tous
+                  </button>
+                  <button
+                    onClick={() => setFilterType('income')}
+                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                      filterType === 'income'
+                        ? 'bg-white dark:bg-[#38342D] text-[#3B6B55] dark:text-[#52A36F] shadow-2xs font-semibold'
+                        : 'text-[#6A6052] dark:text-[#9A9184]'
+                    }`}
+                  >
+                    Entrées
+                  </button>
+                  <button
+                    onClick={() => setFilterType('expense')}
+                    className={`px-2.5 py-1 rounded-md font-medium text-xs transition-all ${
+                      filterType === 'expense'
+                        ? 'bg-white dark:bg-[#38342D] text-[#A24824] dark:text-[#E8734C] shadow-2xs font-semibold'
+                        : 'text-[#6A6052] dark:text-[#9A9184]'
+                    }`}
+                  >
+                    Dépenses
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -347,7 +446,7 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Type</th>
                     <th className="py-3 px-5">Description & Tiers</th>
-                    <th className="py-3 px-4">Catégorie</th>
+                    <th className="py-3 px-4">Catégorie & Sous-Catégorie</th>
                     <th className="py-3 px-4 text-center">Règlement</th>
                     <th className="py-3 px-4 text-right">Montant</th>
                     <th className="py-3 px-4 text-center">Actions</th>
@@ -363,64 +462,119 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                   ) : (
                     filteredTransactions.map((tx) => {
                       const cat = categories.find((c) => c.id === tx.category);
+                      const sub = subCategories.find((s) => s.id === tx.subCategory);
+                      const hasItems = tx.items && tx.items.length > 0;
+                      const isExpanded = !!expandedTxIds[tx.id];
+
                       return (
-                        <tr key={tx.id} className="hover:bg-[#FAF8F3] dark:hover:bg-[#26231E] transition-colors">
-                          <td className="py-3 px-4 font-mono text-[11px] text-[#786E61] dark:text-[#9A9184] tabular-nums whitespace-nowrap">
-                            {tx.date}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
-                                tx.type === 'income' ? 'text-[#3B6B55] dark:text-[#52A36F]' : 'text-[#A24824] dark:text-[#E8734C]'
-                              }`}
-                            >
-                              {tx.type === 'income' ? (
-                                <ArrowUpRight className="w-3.5 h-3.5" />
-                              ) : (
-                                <ArrowDownLeft className="w-3.5 h-3.5" />
+                        <React.Fragment key={tx.id}>
+                          <tr className="hover:bg-[#FAF8F3] dark:hover:bg-[#26231E] transition-colors">
+                            <td className="py-3 px-4 font-mono text-[11px] text-[#786E61] dark:text-[#9A9184] tabular-nums whitespace-nowrap">
+                              {tx.date}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                                  tx.type === 'income' ? 'text-[#3B6B55] dark:text-[#52A36F]' : 'text-[#A24824] dark:text-[#E8734C]'
+                                }`}
+                              >
+                                {tx.type === 'income' ? (
+                                  <ArrowUpRight className="w-3.5 h-3.5" />
+                                ) : (
+                                  <ArrowDownLeft className="w-3.5 h-3.5" />
+                                )}
+                                <span>{tx.type === 'income' ? 'Rentrée' : 'Dépense'}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-5">
+                              <div className="font-semibold text-[#25201B] dark:text-[#F2EFEA] flex items-center gap-2">
+                                <span>{tx.note}</span>
+                                {hasItems && (
+                                  <button
+                                    onClick={() => toggleExpand(tx.id)}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#FAF0E6] dark:bg-[#38261F] text-[#A24824] dark:text-[#E8734C] text-[10px] font-semibold hover:underline"
+                                    title="Voir le détail des articles"
+                                  >
+                                    <Receipt className="w-2.5 h-2.5" />
+                                    <span>{tx.items?.length} articles</span>
+                                    {isExpanded ? <ChevronDown className="w-2.5 h-2.5" /> : <ChevronRight className="w-2.5 h-2.5" />}
+                                  </button>
+                                )}
+                              </div>
+                              {tx.recipientOrSource && (
+                                <div className="text-[10px] text-[#867C6E] dark:text-[#9A9184]">{tx.recipientOrSource}</div>
                               )}
-                              <span>{tx.type === 'income' ? 'Rentrée' : 'Dépense'}</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-5">
-                            <div className="font-semibold text-[#25201B] dark:text-[#F2EFEA]">{tx.note}</div>
-                            {tx.recipientOrSource && (
-                              <div className="text-[10px] text-[#867C6E] dark:text-[#9A9184]">{tx.recipientOrSource}</div>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="inline-block px-2 py-0.5 rounded bg-[#EFECE3] dark:bg-[#2B2822] text-[#554C40] dark:text-[#C5BEB3] text-[11px] font-medium">
-                              {language === 'ar_ma' && cat ? cat.labelDarija : cat?.label || tx.category}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-center font-sans text-[11px] capitalize text-[#6A6052] dark:text-[#A69E91]">
-                            {tx.paymentMethod}
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-xs tabular-nums whitespace-nowrap">
-                            <span className={tx.type === 'income' ? 'text-[#3B6B55] dark:text-[#52A36F]' : 'text-[#A24824] dark:text-[#E8734C]'}>
-                              {tx.type === 'income' ? '+' : '-'}
-                              {Math.round(tx.amount).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => onEditTransaction(tx)}
-                                className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded"
-                                title="Modifier"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => onDeleteTransaction(tx.id)}
-                                className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded"
-                                title="Supprimer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className="inline-block px-2 py-0.5 rounded bg-[#EFECE3] dark:bg-[#2B2822] text-[#554C40] dark:text-[#C5BEB3] text-[11px] font-medium">
+                                  {language === 'ar_ma' && cat ? cat.labelDarija : cat?.label || tx.category}
+                                </span>
+                                {sub && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full bg-[#FAF0E6] dark:bg-[#3D251D] text-[#A24824] dark:text-[#E8734C] text-[10px] font-semibold">
+                                    <Tag className="w-2.5 h-2.5" />
+                                    <span>{language === 'ar_ma' && sub.nameDarija ? sub.nameDarija : sub.name}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-center font-sans text-[11px] capitalize text-[#6A6052] dark:text-[#A69E91]">
+                              {tx.paymentMethod}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-xs tabular-nums whitespace-nowrap">
+                              <span className={tx.type === 'income' ? 'text-[#3B6B55] dark:text-[#52A36F]' : 'text-[#A24824] dark:text-[#E8734C]'}>
+                                {tx.type === 'income' ? '+' : '-'}
+                                {Math.round(tx.amount).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => onEditTransaction(tx)}
+                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded"
+                                  title="Modifier"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => onDeleteTransaction(tx.id)}
+                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Expanded itemized receipt details row */}
+                          {hasItems && isExpanded && (
+                            <tr className="bg-[#FAF8F5] dark:bg-[#1D1B17]">
+                              <td colSpan={7} className="px-6 py-3 border-y border-[#EBE6DC] dark:border-[#2C2923]">
+                                <div className="p-3 bg-white dark:bg-[#24221D] rounded-lg border border-[#E5DFD3] dark:border-[#383329] max-w-2xl">
+                                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#7A7163] dark:text-[#9A9184] mb-2 flex items-center gap-1.5">
+                                    <Receipt className="w-3.5 h-3.5 text-[#A24824]" />
+                                    <span>
+                                      {language === 'ar_ma' ? 'Articles d had l-ticket :' : 'Articles détaillés du ticket / reçu :'}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1.5 text-xs">
+                                    {tx.items?.map((it) => (
+                                      <div key={it.id} className="flex items-center justify-between py-0.5 border-b border-[#F5F2EA] dark:border-[#2E2B25] last:border-0">
+                                        <span className="text-[#332D25] dark:text-[#DDD6C8] font-medium">
+                                          {it.name} {it.quantity && it.quantity > 1 ? `(x${it.quantity})` : ''}
+                                        </span>
+                                        <span className="font-mono font-semibold text-[#A24824] dark:text-[#E8734C]">
+                                          {Math.round(it.totalPrice).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })
                   )}
@@ -430,13 +584,21 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
           </div>
         )}
 
-        {/* Footnote matching screenshot */}
-        <div className="px-5 py-3 border-t border-[#EBE6DC] dark:border-[#312E28] bg-[#FAF8F5] dark:bg-[#24221E] text-[11px] text-[#8C8375] dark:text-[#9A9184] italic">
-          {language === 'ar_ma'
-            ? '* Had l&apos;ar9am w les calculs kaytbadlo m3a kola opération jdidah li katzidha f had l&apos;application.'
-            : language === 'en'
-            ? 'Figures are illustrative sample data — update with your personal transaction entries.'
-            : '* Données synchronisées en temps réel selon vos transactions enregistrées.'}
+        {/* Footnote */}
+        <div className="px-5 py-3 border-t border-[#EBE6DC] dark:border-[#312E28] bg-[#FAF8F5] dark:bg-[#24221E] text-[11px] text-[#8C8375] dark:text-[#9A9184] italic flex items-center justify-between">
+          <span>
+            {language === 'ar_ma'
+              ? '* Had l&apos;ar9am w les calculs kaytbadlo m3a kola opération jdidah li katzidha f had l&apos;application.'
+              : '* Données synchronisées en temps réel selon vos transactions et sous-catégories configurées.'}
+          </span>
+          {onOpenSubCategoryManager && (
+            <button
+              onClick={() => onOpenSubCategoryManager()}
+              className="text-[#A24824] dark:text-[#E8734C] hover:underline font-semibold not-italic"
+            >
+              {language === 'ar_ma' ? 'Gérer les sous-catégories →' : 'Gérer les sous-catégories →'}
+            </button>
+          )}
         </div>
       </div>
     </section>

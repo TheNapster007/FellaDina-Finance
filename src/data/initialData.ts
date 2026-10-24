@@ -1,4 +1,4 @@
-import { CategoryBudget, MonthlyDataPoint, Transaction } from '../types';
+import { CategoryBudget, MonthlyDataPoint, SubCategory, Transaction } from '../types';
 
 export const INITIAL_CATEGORIES: CategoryBudget[] = [
   // Revenus (Kandkhel)
@@ -116,6 +116,46 @@ export const INITIAL_CATEGORIES: CategoryBudget[] = [
   },
 ];
 
+export const INITIAL_SUB_CATEGORIES: SubCategory[] = [
+  // Alimentation & Courses
+  { id: 'sub-alim-epicerie', categoryId: 'alimentation', name: 'Épicerie (Atay, Sucre, Huile)', nameDarija: 'Teqdia d Hanout & Atay/Sokar' },
+  { id: 'sub-alim-laiterie', categoryId: 'alimentation', name: 'Produits Laitiers (Hlib, Fromage)', nameDarija: 'Hlib & Fromage' },
+  { id: 'sub-alim-marche', categoryId: 'alimentation', name: 'Marché Frais (Légumes & Fruits)', nameDarija: 'Souq & Khodra/Desser' },
+  { id: 'sub-alim-boucherie', categoryId: 'alimentation', name: 'Boucherie, Volailles & Poissons', nameDarija: 'Gzzar, Djaj & Hout' },
+  { id: 'sub-alim-supermarche', categoryId: 'alimentation', name: 'Supermarché & Hygiène (Marjane/BIM)', nameDarija: 'Grandes Surfaces & Marjane' },
+  { id: 'sub-alim-boulangerie', categoryId: 'alimentation', name: 'Boulangerie & Pâtisserie (Khobz)', nameDarija: 'Mkhbaza & Khobz' },
+
+  // Logement & Syndic
+  { id: 'sub-log-loyer', categoryId: 'logement', name: 'Loyer mensuel', nameDarija: 'Kraya d Dar' },
+  { id: 'sub-log-syndic', categoryId: 'logement', name: 'Charges Syndic & Immeuble', nameDarija: 'Syndic d L&apos;immeuble' },
+  { id: 'sub-log-travaux', categoryId: 'logement', name: 'Entretien, Meubles & Bricolage', nameDarija: 'Islahat & Dwezan' },
+
+  // Transport & Carburant
+  { id: 'sub-trans-carburant', categoryId: 'transport', name: 'Carburant (Essence / Diesel)', nameDarija: 'Essence & Mazout (Afriquia)' },
+  { id: 'sub-trans-peage', categoryId: 'transport', name: 'Péage Jawaz & Parking', nameDarija: 'Jawaz Autoroute & Parking' },
+  { id: 'sub-trans-lavage', categoryId: 'transport', name: 'Entretien, Vidange & Lavage', nameDarija: 'Lavage & Vidange' },
+  { id: 'sub-trans-taxi', categoryId: 'transport', name: 'Taxi, Tramway & VTC', nameDarija: 'Taxi & Tramway' },
+
+  // Factures
+  { id: 'sub-fact-internet', categoryId: 'factures', name: 'Fibre Optique & Télécom (IAM/Inwi)', nameDarija: 'Wifi & Forfait Mobile' },
+  { id: 'sub-fact-elec', categoryId: 'factures', name: 'Électricité & Eau (Redal/Lydec/ONEE)', nameDarija: 'Dow & Lma' },
+  { id: 'sub-fact-abonnements', categoryId: 'factures', name: 'Abonnements & Services en ligne', nameDarija: 'Abonnements en ligne' },
+
+  // Loisirs, Cafés & Restos
+  { id: 'sub-lois-restos', categoryId: 'loisirs', name: 'Restaurants & Sorties', nameDarija: 'Resto & Makla bra' },
+  { id: 'sub-lois-cafes', categoryId: 'loisirs', name: 'Cafés & Salons de thé', nameDarija: 'Qhawi & Thé' },
+  { id: 'sub-lois-vacances', categoryId: 'loisirs', name: 'Voyages & Weekends', nameDarija: 'Safar & Weekend' },
+
+  // Santé & Sport
+  { id: 'sub-sant-sport', categoryId: 'sante', name: 'Salle de sport & Fitness', nameDarija: 'Salle d Gym' },
+  { id: 'sub-sant-pharmacie', categoryId: 'sante', name: 'Pharmacie & Médicaments', nameDarija: 'Pharmacie & Dwa' },
+  { id: 'sub-sant-medecin', categoryId: 'sante', name: 'Consultations & Dentiste', nameDarija: 'Tbib & Dentiste' },
+
+  // Épargne & Actifs
+  { id: 'sub-ep-urgence', categoryId: 'epargne_invest', name: 'Épargne d\'urgence (Livret)', nameDarija: 'Tkhba3 d flous' },
+  { id: 'sub-ep-bourse', categoryId: 'epargne_invest', name: 'Bourse, OPCVM & Actions', nameDarija: 'Bourse & Invest' },
+];
+
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   // Rentrées récentes (Octobre 2026)
   {
@@ -164,6 +204,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-201',
     type: 'expense',
     category: 'logement',
+    subCategory: 'sub-log-loyer',
     amount: 4500,
     date: '2026-10-02',
     note: 'Loyer appartement mensualité Octobre',
@@ -174,6 +215,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-202',
     type: 'expense',
     category: 'factures',
+    subCategory: 'sub-fact-internet',
     amount: 420,
     date: '2026-10-03',
     note: 'Abonnement Fibre Optique 100M + Forfait Mobile',
@@ -188,6 +230,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-203',
     type: 'expense',
     category: 'factures',
+    subCategory: 'sub-fact-elec',
     amount: 510,
     date: '2026-10-04',
     note: 'Facture Électricité & Eau Redal/Lydec',
@@ -198,6 +241,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-204',
     type: 'expense',
     category: 'alimentation',
+    subCategory: 'sub-alim-supermarche',
     amount: 1450,
     date: '2026-10-05',
     note: 'Grandes courses du mois (Supermarché Marjane)',
@@ -219,6 +263,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-205',
     type: 'expense',
     category: 'transport',
+    subCategory: 'sub-trans-carburant',
     amount: 650,
     date: '2026-10-06',
     note: 'Plein d\'essence sans plomb + lavage',
@@ -233,6 +278,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-206',
     type: 'expense',
     category: 'sante',
+    subCategory: 'sub-sant-sport',
     amount: 450,
     date: '2026-10-10',
     note: 'Abonnement salle de fitness + compléments',
@@ -243,6 +289,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-207',
     type: 'expense',
     category: 'alimentation',
+    subCategory: 'sub-alim-marche',
     amount: 880,
     date: '2026-10-12',
     note: 'Marché frais légumes, fruits & boucherie',
@@ -262,6 +309,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-208',
     type: 'expense',
     category: 'loisirs',
+    subCategory: 'sub-lois-restos',
     amount: 720,
     date: '2026-10-16',
     note: 'Dîner entre amis restaurant bord de mer',
@@ -272,6 +320,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-209',
     type: 'expense',
     category: 'transport',
+    subCategory: 'sub-trans-peage',
     amount: 450,
     date: '2026-10-19',
     note: 'Recharge carte autoroute péage + parking',
@@ -282,6 +331,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-210',
     type: 'expense',
     category: 'epargne_invest',
+    subCategory: 'sub-ep-urgence',
     amount: 8000,
     date: '2026-10-21',
     note: 'Virement automatique vers Livret / Épargne d\'urgence',
@@ -312,6 +362,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-303',
     type: 'expense',
     category: 'logement',
+    subCategory: 'sub-log-loyer',
     amount: 4500,
     date: '2026-09-02',
     note: 'Loyer Septembre',
@@ -321,6 +372,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-304',
     type: 'expense',
     category: 'alimentation',
+    subCategory: 'sub-alim-supermarche',
     amount: 2950,
     date: '2026-09-18',
     note: 'Courses mensuelles et repas',
@@ -330,6 +382,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-305',
     type: 'expense',
     category: 'transport',
+    subCategory: 'sub-trans-carburant',
     amount: 1600,
     date: '2026-09-22',
     note: 'Carburant et entretien vidange',
@@ -339,6 +392,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-306',
     type: 'expense',
     category: 'loisirs',
+    subCategory: 'sub-lois-restos',
     amount: 1100,
     date: '2026-09-25',
     note: 'Weekend détente et sorties',
@@ -348,6 +402,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     id: 'tx-307',
     type: 'expense',
     category: 'epargne_invest',
+    subCategory: 'sub-ep-bourse',
     amount: 7500,
     date: '2026-09-28',
     note: 'Investissement mensuel programmé',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Transaction, CategoryBudget, Currency, Language } from '../types';
+import { Transaction, CategoryBudget, SubCategory, Currency, Language } from '../types';
 import { exportFinancialDataToCsv } from '../utils/exportCsv';
 import { X, Download, FileSpreadsheet, Check, CheckCircle2, Sliders } from 'lucide-react';
 
@@ -8,6 +8,7 @@ interface ExportModalProps {
   onClose: () => void;
   transactions: Transaction[];
   categories: CategoryBudget[];
+  subCategories?: SubCategory[];
   currency: Currency;
   language: Language;
   onExportSuccess?: (filename: string) => void;
@@ -18,6 +19,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   transactions,
   categories,
+  subCategories = [],
   currency,
   language,
   onExportSuccess,
@@ -36,6 +38,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       includeTransactions,
       includeMonthlySummary,
       delimiter,
+      subCategories,
     });
     setExportedSuccess(result.filename);
     if (onExportSuccess) {

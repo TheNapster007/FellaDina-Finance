@@ -1,6 +1,6 @@
 import React from 'react';
 import { PeriodFilter, Currency, Language, Theme } from '../types';
-import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon } from 'lucide-react';
+import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus } from 'lucide-react';
 
 interface TopNavProps {
   period: PeriodFilter;
@@ -17,6 +17,8 @@ interface TopNavProps {
   onOpenAddModal: () => void;
   onOpenExportModal: () => void;
   onOpenPdfModal?: () => void;
+  onOpenCategoryManager?: () => void;
+  onOpenSubCategoryManager?: () => void;
   onResetData: () => void;
 }
 
@@ -35,6 +37,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenAddModal,
   onOpenExportModal,
   onOpenPdfModal,
+  onOpenCategoryManager,
+  onOpenSubCategoryManager,
   onResetData,
 }) => {
   return (
@@ -51,7 +55,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
             <div>
               <span className="font-serif font-bold text-lg tracking-tight text-[#2B2621] dark:text-[#F2EFEA]">
-                {language === 'ar_ma' ? 'Mizan · Suivi Flous' : 'Mizan Finance'}
+                {language === 'ar_ma' ? 'Felladina Finance · Suivi Flous' : 'Felladina Finance'}
               </span>
               <span className="ml-2 text-[11px] font-sans uppercase tracking-wider text-[#8C8275] dark:text-[#8D8477] border-l border-[#D6CFBE] dark:border-[#3D382F] pl-2 hidden sm:inline">
                 KPIs & Trésorerie
@@ -78,6 +82,17 @@ export const TopNav: React.FC<TopNavProps> = ({
                 className="p-1.5 bg-white dark:bg-[#22201C] border border-[#DCD5C6] dark:border-[#38342D] text-[#A24824] dark:text-[#E8734C] rounded-lg shadow-2xs"
               >
                 <FileText className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Mobile Category Manager */}
+            {onOpenCategoryManager && (
+              <button
+                onClick={onOpenCategoryManager}
+                title={language === 'ar_ma' ? 'Tanzim d l-asnâaf' : 'Gérer les catégories'}
+                className="p-1.5 bg-white dark:bg-[#22201C] border border-[#DCD5C6] dark:border-[#38342D] text-[#A24824] dark:text-[#E8734C] rounded-lg shadow-2xs"
+              >
+                <FolderPlus className="w-4 h-4" />
               </button>
             )}
 
@@ -213,6 +228,30 @@ export const TopNav: React.FC<TopNavProps> = ({
             <FileSpreadsheet className="w-3.5 h-3.5 text-[#3B6B55]" />
             <span className="hidden xl:inline">Export Excel</span>
           </button>
+
+          {/* Category Manager Button */}
+          {onOpenCategoryManager && (
+            <button
+              onClick={onOpenCategoryManager}
+              title={language === 'ar_ma' ? 'Tanzim d l-asnâaf (Catégories)' : 'Gérer et créer de nouvelles catégories de budget'}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF4F0] dark:hover:bg-[#2C2522] border border-[#DCD5C6] dark:border-[#38342D] text-[#2B2621] dark:text-[#F2EFEA] rounded-lg transition-colors font-medium shadow-2xs"
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-[#A24824] dark:text-[#E8734C]" />
+              <span className="hidden xl:inline">{language === 'ar_ma' ? 'Catégories' : 'Catégories'}</span>
+            </button>
+          )}
+
+          {/* SubCategories Manager Button */}
+          {onOpenSubCategoryManager && (
+            <button
+              onClick={onOpenSubCategoryManager}
+              title={language === 'ar_ma' ? 'Tanzim d sous-catégories' : 'Gérer les sous-catégories personnalisées'}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF4F0] dark:hover:bg-[#2C2522] border border-[#DCD5C6] dark:border-[#38342D] text-[#2B2621] dark:text-[#F2EFEA] rounded-lg transition-colors font-medium shadow-2xs"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#A24824] dark:text-[#E8734C]" />
+              <span className="hidden xl:inline">{language === 'ar_ma' ? 'Sous-catégories' : 'Sous-Catégories'}</span>
+            </button>
+          )}
 
           {/* PDF Report Button */}
           {onOpenPdfModal && (
