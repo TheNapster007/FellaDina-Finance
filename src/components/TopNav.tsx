@@ -1,6 +1,6 @@
 import React from 'react';
 import { PeriodFilter, Currency, Language, Theme } from '../types';
-import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus } from 'lucide-react';
+import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus, Sparkles } from 'lucide-react';
 
 interface TopNavProps {
   period: PeriodFilter;
@@ -95,6 +95,18 @@ export const TopNav: React.FC<TopNavProps> = ({
                 <FolderPlus className="w-4 h-4" />
               </button>
             )}
+
+            {/* Mobile Forecast Button */}
+            <button
+              onClick={() => {
+                const el = document.getElementById('forecast-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              title={language === 'ar_ma' ? 'Tawaqo3at l-mizaniya (3 chhor)' : 'Prévisions budgétaires sur 3 mois'}
+              className="p-1.5 bg-[#FAF4F0] dark:bg-[#251F1C] border border-[#E8D4C8] dark:border-[#4A2D22] text-[#A24824] dark:text-[#E8734C] rounded-lg shadow-2xs"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
 
             <button
               onClick={onOpenExportModal}
@@ -254,16 +266,29 @@ export const TopNav: React.FC<TopNavProps> = ({
           )}
 
           {/* PDF Report Button */}
-          {onOpenPdfModal && (
-            <button
-              onClick={onOpenPdfModal}
-              title="Générer un relevé financier mensuel en PDF (A4)"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF4F0] dark:hover:bg-[#2C2522] border border-[#DCD5C6] dark:border-[#38342D] hover:border-[#A24824]/40 text-[#2B2621] dark:text-[#F2EFEA] rounded-lg transition-colors font-medium shadow-2xs"
-            >
-              <FileText className="w-3.5 h-3.5 text-[#A24824]" />
-              <span className="hidden lg:inline">Rapport PDF</span>
-            </button>
-          )}
+            {onOpenPdfModal && (
+              <button
+                onClick={onOpenPdfModal}
+                title="Générer un relevé financier mensuel en PDF (A4)"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF4F0] dark:hover:bg-[#2C2522] border border-[#DCD5C6] dark:border-[#38342D] hover:border-[#A24824]/40 text-[#2B2621] dark:text-[#F2EFEA] rounded-lg transition-colors font-medium shadow-2xs"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#A24824]" />
+                <span className="hidden lg:inline">Rapport PDF</span>
+              </button>
+            )}
+
+          {/* Quick Jump to Forecast */}
+          <button
+            onClick={() => {
+              const el = document.getElementById('forecast-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            title={language === 'ar_ma' ? 'Tawaqo3at l-mizaniya (Prévisions 3 mois)' : 'Consulter les prévisions budgétaires sur 3 mois'}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#FAF4F0] dark:bg-[#241E1A] hover:bg-[#F3E6DF] dark:hover:bg-[#2E241E] border border-[#E8D4C8] dark:border-[#4A2D22] text-[#A24824] dark:text-[#E8734C] rounded-lg transition-colors font-medium shadow-2xs"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{language === 'ar_ma' ? 'Tawaqo3at 3M' : 'Prévisions 3M'}</span>
+          </button>
 
           {/* Reset / Reload Demo Data */}
           <button

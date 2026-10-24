@@ -90,3 +90,52 @@ export interface ToastNotification {
   actionLabel?: string;
   onAction?: () => void;
 }
+
+export type ForecastScenario = 'baseline' | 'optimistic' | 'conservative';
+
+export interface CategoryForecastItem {
+  categoryId: string;
+  label: string;
+  labelDarija: string;
+  color: string;
+  icon: string;
+  historicalAverage: number;
+  projectedM1: number;
+  projectedM2: number;
+  projectedM3: number;
+  allocatedBudget: number;
+  growthRatePct: number;
+  isOverBudget: boolean;
+}
+
+export interface ForecastTimelineMonth {
+  monthKey: string; // "2026-11"
+  label: string; // "Novembre 2026"
+  shortLabel: string; // "Nov"
+  isProjection: boolean;
+  actualOrExpectedExpense: number;
+  minExpense: number; // lower confidence bound
+  maxExpense: number; // upper confidence bound
+  projectedIncome: number;
+  projectedSavings: number;
+  budgetCap: number; // total allocated monthly expense budget
+}
+
+export interface ForecastReport {
+  scenario: ForecastScenario;
+  discretionaryAdjustmentPct: number;
+  timelineMonths: ForecastTimelineMonth[]; // includes 3 historical + 3 future months
+  historicalAverageExpense: number;
+  projectedAverageExpense: number;
+  projectedThreeMonthExpenseTotal: number;
+  projectedThreeMonthSavingsTotal: number;
+  allocatedMonthlyBudgetCap: number;
+  fastestGrowingCategory: {
+    label: string;
+    labelDarija: string;
+    growthPct: number;
+  } | null;
+  budgetRiskMonth: string | null; // e.g. "Décembre 2026" if over budget
+  categoryForecasts: CategoryForecastItem[];
+}
+

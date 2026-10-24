@@ -8,6 +8,7 @@ import { Section01Drivers } from './components/Section01Drivers';
 import { Section02Breakdown } from './components/Section02Breakdown';
 import { Section03DetailTable } from './components/Section03DetailTable';
 import { Section04FinancialCalendar } from './components/Section04FinancialCalendar';
+import { Section05BudgetForecast } from './components/Section05BudgetForecast';
 import { TransactionModal } from './components/TransactionModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { SubCategoryManagerModal } from './components/SubCategoryManagerModal';
@@ -525,6 +526,14 @@ export default function App() {
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={handleDeleteTransaction}
           onOpenPdfModal={(monthKey) => handleOpenPdfModal(monthKey)}
+        />
+
+        {/* Section 05: Predictive Budget Forecast & 3-Month Projection */}
+        <Section05BudgetForecast
+          transactions={transactions}
+          categories={categories}
+          currency={currency}
+          language={language}
         />
 
         {/* Footer notes strip */}
