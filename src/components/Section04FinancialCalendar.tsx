@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Clock,
   FileText,
+  Lock,
 } from 'lucide-react';
 
 interface Section04FinancialCalendarProps {
@@ -25,6 +26,7 @@ interface Section04FinancialCalendarProps {
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   onOpenPdfModal?: (monthKey?: string) => void;
+  isDemoMode?: boolean;
 }
 
 export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProps> = ({
@@ -36,12 +38,14 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
   onEditTransaction,
   onDeleteTransaction,
   onOpenPdfModal,
+  isDemoMode = false,
 }) => {
-  // Current calendar view month (default to 2026-10 based on dataset)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(9); // 0-indexed: 9 = October
-  const [selectedDate, setSelectedDate] = useState<string>('2026-10-05');
+  // Current calendar view month defaults to today
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-indexed
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
 
   // Month navigation handlers
@@ -502,12 +506,18 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
               {/* Add transaction pre-filled with this date */}
               <button
                 onClick={() => onOpenAddModalWithDate(selectedDate)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0"
+                title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Fte7 7ssab bach t-zid masrouf' : 'Mode Démo : Créez un compte pour ajouter une opération') : undefined}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0 group"
               >
-                <Plus className="w-3.5 h-3.5" />
+                {isDemoMode ? <Lock className="w-3.5 h-3.5 text-white/80" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>
                   {language === 'ar_ma' ? '+ Zid f had nhar' : '+ Ajouter sur ce jour'}
                 </span>
+                {isDemoMode && (
+                  <span className="text-[10px] font-medium bg-black/25 text-white/90 px-1.5 py-0.2 rounded">
+                    Démo
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -615,15 +625,15 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => onEditTransaction(tx)}
-                          className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded"
-                          title="Modifier"
+                          className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded transition-colors"
+                          title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Dkhol b 7ssab bach t-beddel' : 'Mode Démo : Connectez-vous pour modifier') : 'Modifier'}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteTransaction(tx.id)}
-                          className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded"
-                          title="Supprimer"
+                          className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded transition-colors"
+                          title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Dkhol b 7ssab bach t-mssa7' : 'Mode Démo : Connectez-vous pour supprimer') : 'Supprimer'}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

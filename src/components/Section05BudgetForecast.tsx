@@ -262,6 +262,20 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
         </div>
       </div>
 
+      {/* Empty State Banner when no transactions exist */}
+      {transactions.length === 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-[#FAF8F3] dark:bg-[#201F1B] border border-dashed border-[#DDD7C9] dark:border-[#38352F] flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[#FAF0E6] dark:bg-[#34241D] flex items-center justify-center text-[#A24824] dark:text-[#E8734C] shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <p className="text-xs text-[#6F6659] dark:text-[#9A9184] leading-relaxed">
+            {language === 'ar_ma'
+              ? 'Mazal ma dkhlti hta chi masrouf. Dès que t-bda ddkhel l-masarif yawmiyan, had l-modèle ghadi y7ellel l-évolution dyal floussek.'
+              : 'Aucune transaction enregistrée pour l’instant. Dès que vous enregistrez vos dépenses quotidiennes, les projections prédictives et les corridors d’incertitude s’ajusteront à votre rythme réel.'}
+          </p>
+        </div>
+      )}
+
       {/* 4 Executive Forecast KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Metric 1: Total 3-Month Projected Expense */}

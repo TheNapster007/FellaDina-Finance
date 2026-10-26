@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Transaction, CategoryBudget, SubCategory, Currency, Language } from '../types';
-import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileText, Layers, Tag, Receipt, ChevronDown, ChevronRight, Eye, FolderPlus, X, Filter, Calendar, Hash } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Download, ArrowUpRight, ArrowDownLeft, FileText, Layers, Tag, Receipt, ChevronDown, ChevronRight, Eye, FolderPlus, X, Filter, Calendar, Hash, Lock } from 'lucide-react';
 import { exportFinancialDataToCsv } from '../utils/exportCsv';
 
 interface Section03DetailTableProps {
@@ -17,6 +17,7 @@ interface Section03DetailTableProps {
   onOpenSubCategoryManager?: (categoryId?: string) => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
+  isDemoMode?: boolean;
 }
 
 export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
@@ -33,6 +34,7 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
   onOpenSubCategoryManager,
   onEditTransaction,
   onDeleteTransaction,
+  isDemoMode = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'categories' | 'transactions'>('categories');
   const [searchQuery, setSearchQuery] = useState('');
@@ -362,9 +364,21 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
             <button
               onClick={onOpenAddModal}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+              title={
+                isDemoMode
+                  ? language === 'ar_ma'
+                    ? 'Mode Démo : Khassk 7ssab bach tzid'
+                    : 'Mode Démo : Inscription requise pour ajouter une transaction'
+                  : undefined
+              }
             >
-              <Plus className="w-3.5 h-3.5" />
+              {isDemoMode ? <Lock className="w-3.5 h-3.5 opacity-90" /> : <Plus className="w-3.5 h-3.5" />}
               <span>{language === 'ar_ma' ? '+ Zid' : '+ Ajouter'}</span>
+              {isDemoMode && (
+                <span className="hidden sm:inline text-[9px] px-1 py-0.2 bg-black/20 rounded font-mono uppercase tracking-wider">
+                  Démo
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -678,23 +692,39 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                       <td colSpan={7} className="py-12 text-center">
                         <div className="max-w-sm mx-auto flex flex-col items-center justify-center text-center">
                           <div className="w-10 h-10 rounded-full bg-[#FAF0E6] dark:bg-[#34241D] flex items-center justify-center text-[#A24824] dark:text-[#E8734C] mb-3">
-                            <Search className="w-5 h-5" />
+                            {transactions.length === 0 ? <Plus className="w-5 h-5" /> : <Search className="w-5 h-5" />}
                           </div>
                           <h4 className="text-sm font-semibold text-[#25201B] dark:text-[#F2EFEA] mb-1">
-                            {language === 'ar_ma'
+                            {transactions.length === 0
+                              ? language === 'ar_ma'
+                                ? 'Hta chi opération msjjla daba'
+                                : 'Aucune opération enregistrée pour le moment'
+                              : language === 'ar_ma'
                               ? 'Walou ma lqinah b had l-bahth'
                               : 'Aucune transaction trouvée'}
                           </h4>
                           <p className="text-xs text-[#7C7365] dark:text-[#9A9184] mb-3 leading-relaxed">
-                            {searchQuery.trim()
+                            {transactions.length === 0
+                              ? language === 'ar_ma'
+                                ? 'Bda ddkhel l-madkhoul dyalek w l-masarif yawmiyan bach l-hisabat ybdaw.'
+                                : 'Commencez à saisir vos rentrées et dépenses quotidiennes pour alimenter vos calculs en direct.'
+                              : searchQuery.trim()
                               ? language === 'ar_ma'
                                 ? `Hta chi opération ma katchbeh l « ${searchQuery} ». Jerreb montant khor aw tarikh.`
-                                : `Aucune opération ne correspond à « ${searchQuery} ». Essayez un montant (ex: 4500), une date (ex: 2026-10) ou un mot-clé.`
+                                : `Aucune opération ne correspond à « ${searchQuery} ». Essayez un montant, une date ou un mot-clé.`
                               : language === 'ar_ma'
-                              ? 'Walou f had l-filtrage. Beddel l&apos;ikhtiyarat.'
+                              ? 'Walou f had l-filtrage. Beddel l-ikhtiyarat.'
                               : 'Aucune opération avec ces filtres sélectionnés.'}
                           </p>
-                          {(searchQuery || filterType !== 'all' || filterSubCategory !== 'all') && (
+                          {transactions.length === 0 ? (
+                            <button
+                              onClick={onOpenAddModal}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>{language === 'ar_ma' ? '+ Zid awel opération' : '+ Ajouter ma première opération'}</span>
+                            </button>
+                          ) : (searchQuery || filterType !== 'all' || filterSubCategory !== 'all') ? (
                             <button
                               onClick={() => {
                                 setSearchQuery('');
@@ -706,7 +736,7 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                               <X className="w-3.5 h-3.5" />
                               <span>{language === 'ar_ma' ? 'Mseh l-bahth' : 'Effacer la recherche'}</span>
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -783,14 +813,14 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                                 <button
                                   onClick={() => onEditTransaction(tx)}
                                   className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded"
-                                  title="Modifier"
+                                  title={isDemoMode ? "Mode Démo : Inscription requise pour modifier" : "Modifier"}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => onDeleteTransaction(tx.id)}
                                   className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded"
-                                  title="Supprimer"
+                                  title={isDemoMode ? "Mode Démo : Inscription requise pour supprimer" : "Supprimer"}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>

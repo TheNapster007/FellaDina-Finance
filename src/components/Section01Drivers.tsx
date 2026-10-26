@@ -37,39 +37,39 @@ export const Section01Drivers: React.FC<Section01DriversProps> = ({
   const waterfallItems = [
     {
       label: language === 'ar_ma' ? 'Départ' : 'Solde Init.',
-      value: 12.0,
+      value: 0,
       type: 'base',
       color: '#7D7569',
     },
     {
       label: language === 'ar_ma' ? 'Salaire' : 'Salaires',
-      value: Math.round((salaryIncome / 1000) * 10) / 10 || 19.5,
+      value: Math.round((salaryIncome / 1000) * 10) / 10,
       type: 'plus',
       color: '#4F6D5B',
     },
     {
-      label: language === 'ar_ma' ? 'Extras' : 'Freelance',
-      value: Math.round((extraIncome / 1000) * 10) / 10 || 11.5,
+      label: language === 'ar_ma' ? 'Extras' : 'Autres Entrées',
+      value: Math.round((extraIncome / 1000) * 10) / 10,
       type: 'plus',
       color: '#5B7B68',
     },
     {
       label: language === 'ar_ma' ? 'Loyer' : 'Logement',
-      value: -Math.abs(Math.round((housingExpense / 1000) * 10) / 10 || 4.5),
+      value: -Math.abs(Math.round((housingExpense / 1000) * 10) / 10),
       type: 'minus',
       color: '#A24824',
     },
     {
-      label: language === 'ar_ma' ? 'Lmasrouf' : 'Quotidien',
-      value: -Math.abs(Math.round((otherExpenses / 1000) * 10) / 10 || 12.3),
+      label: language === 'ar_ma' ? 'Lmasrouf' : 'Autres Charges',
+      value: -Math.abs(Math.round((otherExpenses / 1000) * 10) / 10),
       type: 'minus',
       color: '#B85D36',
     },
     {
-      label: language === 'ar_ma' ? 'Solde Fin' : 'Solde Net',
-      value: Math.round(((12000 + netEnding) / 1000) * 10) / 10,
+      label: language === 'ar_ma' ? 'Solde Net' : 'Solde Net',
+      value: Math.round((netEnding / 1000) * 10) / 10,
       type: 'total',
-      color: '#6A371F',
+      color: netEnding >= 0 ? '#3B6B55' : '#A24824',
     },
   ];
 

@@ -732,31 +732,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div />
               )}
 
-              {step < 4 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (step === 1 && !name.trim()) {
-                      alert('Veuillez renseigner votre nom complet.');
-                      return;
-                    }
-                    setStep((step + 1) as any);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-                >
-                  <span>Suivant : {step === 1 ? 'Mes Revenus' : step === 2 ? 'Mes Dépenses' : 'Vérification'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleCompleteSignUp}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#3B6B55] hover:bg-[#2E5543] text-white text-xs font-bold rounded-xl shadow-md transition-all hover:scale-[1.01]"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Commencer à calculer mon budget</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {step === 1 && name.trim() && (
+                  <button
+                    type="button"
+                    onClick={handleCompleteSignUp}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#2C2923] border border-[#DDD6C8] dark:border-[#3E382E] hover:border-[#A24824] text-[#A24824] dark:text-[#E8734C] text-xs font-semibold rounded-lg transition-all"
+                    title="Créer le compte directement et commencer à saisir les transactions"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Démarrage immédiat (vide)</span>
+                  </button>
+                )}
+
+                {step < 4 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (step === 1 && !name.trim()) {
+                        alert('Veuillez renseigner votre nom complet.');
+                        return;
+                      }
+                      setStep((step + 1) as any);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                  >
+                    <span>Suivant : {step === 1 ? 'Mes Revenus' : step === 2 ? 'Mes Dépenses' : 'Vérification'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCompleteSignUp}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#3B6B55] hover:bg-[#2E5543] text-white text-xs font-bold rounded-xl shadow-md transition-all hover:scale-[1.01]"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Commencer à calculer mon budget</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

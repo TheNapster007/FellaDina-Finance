@@ -36,23 +36,23 @@ const MONTH_NAMES_SHORT = [
 export function computeMonthlyAggregation(transactions: Transaction[]): MonthlyChartItem[] {
   const monthMap = new Map<string, { income: number; expense: number }>();
 
-  // Ensure baseline months (e.g. May to Oct 2026) exist so charts are rich initially
-  const baselineMonths = ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'];
-  const baselineData: Record<string, { income: number; expense: number }> = {
-    '2026-05': { income: 25400, expense: 15200 },
-    '2026-06': { income: 27100, expense: 16100 },
-    '2026-07': { income: 28900, expense: 17400 },
-    '2026-08': { income: 29800, expense: 18200 },
-  };
-
-  // Pre-seed known baseline for smoother historical display if not in tx
-  baselineMonths.forEach((m) => {
-    if (baselineData[m]) {
-      monthMap.set(m, { ...baselineData[m] });
-    } else {
-      monthMap.set(m, { income: 0, expense: 0 });
-    }
-  });
+  // If no transactions, return current month with 0
+  if (!transactions || transactions.length === 0) {
+    const now = new Date();
+    const currKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthIndex = now.getMonth();
+    return [
+      {
+        monthKey: currKey,
+        label: `${MONTH_NAMES_FR[monthIndex]} ${now.getFullYear()}`,
+        shortLabel: `${MONTH_NAMES_SHORT[monthIndex]}`,
+        income: 0,
+        expense: 0,
+        net: 0,
+        savingsRate: 0,
+      },
+    ];
+  }
 
   // Aggregate user transactions
   transactions.forEach((tx) => {

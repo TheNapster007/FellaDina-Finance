@@ -13,6 +13,7 @@ interface TransactionModalProps {
   editingTransaction?: Transaction | null;
   initialDate?: string;
   initialCategory?: string;
+  initialType?: TransactionType;
   currency: Currency;
   language: Language;
 }
@@ -28,6 +29,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   editingTransaction,
   initialDate,
   initialCategory,
+  initialType,
   currency,
   language,
 }) => {
@@ -70,9 +72,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setShowItemDetails(Boolean(editingTransaction.items && editingTransaction.items.length > 0));
     } else {
       // defaults
-      setType('expense');
+      const targetType = initialType || 'expense';
+      setType(targetType);
       setAmount('');
-      const defaultCat = initialCategory || categories.find((c) => c.type === 'expense')?.id || 'alimentation';
+      const defaultCat = initialCategory || categories.find((c) => c.type === targetType)?.id || (targetType === 'income' ? 'salaire' : 'alimentation');
       setCategory(defaultCat);
       setSubCategory('');
       setDate(initialDate || new Date().toISOString().split('T')[0]);
@@ -86,11 +89,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setCustomCatName('');
     setCustomCatNameDarija('');
     setCustomCatBudget('2000');
-    setCustomCatColor(type === 'income' ? '#3B6B55' : '#A24824');
+    setCustomCatColor((initialType || type) === 'income' ? '#3B6B55' : '#A24824');
     setIsCreatingSubCat(false);
     setCustomSubName('');
     setCustomSubNameDarija('');
-  }, [editingTransaction, isOpen, categories, initialDate, initialCategory, type]);
+  }, [editingTransaction, isOpen, categories, initialDate, initialCategory, initialType]);
 
   if (!isOpen) return null;
 

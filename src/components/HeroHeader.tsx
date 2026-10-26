@@ -1,6 +1,6 @@
 import React from 'react';
 import { PeriodFilter, Currency, Language, UserProfile } from '../types';
-import { Filter, Sparkles, User, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Filter, Sparkles, User, CheckCircle2, ArrowRight, Lock } from 'lucide-react';
 
 interface HeroHeaderProps {
   period: PeriodFilter;
@@ -25,10 +25,10 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#8A8071] dark:text-[#9A9184]">
           {language === 'ar_ma'
-            ? 'TABLEAU DE BORD · SUIVI FLOUS 2026'
+            ? 'TABLEAU DE BORD · SUIVI QUOTIDIEN FLOUS'
             : language === 'en'
-            ? 'PERFORMANCE DASHBOARD — FY2026'
-            : 'TABLEAU DE BORD FINANCIER — FY2026'}
+            ? 'DAILY PERFORMANCE DASHBOARD'
+            : 'TABLEAU DE BORD FINANCIER · SUIVI QUOTIDIEN'}
         </span>
       </div>
 
@@ -89,16 +89,24 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
               Espace actif : <strong>{currentUser.name}</strong> · Calculs personnalisés
             </span>
           </div>
-        ) : onOpenSignUp ? (
-          <button
-            onClick={onOpenSignUp}
-            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FAF4F0] dark:bg-[#2A211D] hover:bg-[#F4E6DE] dark:hover:bg-[#342721] border border-[#E4D1C5] dark:border-[#4B2F23] rounded-full text-xs text-[#A24824] dark:text-[#E8734C] font-semibold transition-all shadow-2xs"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Calculer avec mes propres revenus & dépenses</span>
-            <ArrowRight className="w-3 h-3 ml-0.5" />
-          </button>
-        ) : null}
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F2EB] dark:bg-[#201F1B] border border-[#DDD6C8] dark:border-[#38342D] rounded-full text-xs text-[#7A7163] dark:text-[#A79E90] font-medium shadow-2xs">
+              <Lock className="w-3.5 h-3.5 text-[#A24824]" />
+              <span>{language === 'ar_ma' ? 'Mode Démo (Lecture Seule)' : 'Mode Démo · Lecture Seule'}</span>
+            </div>
+            {onOpenSignUp && (
+              <button
+                onClick={onOpenSignUp}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FAF4F0] dark:bg-[#2A211D] hover:bg-[#F4E6DE] dark:hover:bg-[#342721] border border-[#E4D1C5] dark:border-[#4B2F23] rounded-full text-xs text-[#A24824] dark:text-[#E8734C] font-semibold transition-all shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Calculer avec mes propres revenus & dépenses</span>
+                <ArrowRight className="w-3 h-3 ml-0.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

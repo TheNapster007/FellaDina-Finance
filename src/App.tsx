@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, CategoryBudget, SubCategory, PeriodFilter, Currency, Language, Theme, ToastNotification, UserProfile, SavingsGoal } from './types';
+import { Transaction, TransactionType, CategoryBudget, SubCategory, PeriodFilter, Currency, Language, Theme, ToastNotification, UserProfile, SavingsGoal } from './types';
 import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_SUB_CATEGORIES, INITIAL_SAVINGS_GOALS, MONTHLY_TREND_SERIES } from './data/initialData';
 import { TopNav } from './components/TopNav';
 import { HeroHeader } from './components/HeroHeader';
+import { DailyEntryBanner } from './components/DailyEntryBanner';
 import { KpiCards } from './components/KpiCards';
 import { Section01Drivers } from './components/Section01Drivers';
 import { Section02Breakdown } from './components/Section02Breakdown';
@@ -17,10 +18,12 @@ import { CategoryDetailModal } from './components/CategoryDetailModal';
 import { ExportModal } from './components/ExportModal';
 import { PdfReportModal } from './components/PdfReportModal';
 import { AuthModal } from './components/AuthModal';
+import { DemoRestrictedModal } from './components/DemoRestrictedModal';
 import { SavingsGoalModal } from './components/SavingsGoalModal';
 import { FooterNotes } from './components/FooterNotes';
 import { ToastContainer } from './components/ToastContainer';
 import { buildUserCategories, generateUserTransactions } from './utils/userBudgetGenerator';
+import { Lock, Sparkles } from 'lucide-react';
 
 export default function App() {
   // Theme state: dark | light with persistence
@@ -55,15 +58,22 @@ export default function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // Load state from localStorage or initial defaults
+  // Load state from localStorage or initial defaults (starts clean and empty)
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try {
-      const saved = localStorage.getItem('felladina_transactions') || localStorage.getItem('mizan_transactions');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('felladina_transactions');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some((t: any) => t.id === 'tx-101' || t.id === 'tx-201' || t.id === 'tx-301' || t.id === 'tx-01')) {
+          localStorage.removeItem('felladina_transactions');
+          return [];
+        }
+        return parsed;
+      }
     } catch {
       // ignore
     }
-    return INITIAL_TRANSACTIONS;
+    return [];
   });
 
   const [categories, setCategories] = useState<CategoryBudget[]>(() => {
@@ -126,51 +136,88 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [modalPreselectedDate, setModalPreselectedDate] = useState<string | undefined>(undefined);
   const [modalPreselectedCategory, setModalPreselectedCategory] = useState<string | undefined>(undefined);
+  const [modalPreselectedType, setModalPreselectedType] = useState<TransactionType | undefined>(undefined);
 
   // Savings Goals & Surplus Allocation State
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>(() => {
     try {
       const saved = localStorage.getItem('felladina_savings_goals');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some((g: any) => g.id === 'goal-emergency' || g.id === 'goal-realestate')) {
+          localStorage.removeItem('felladina_savings_goals');
+          return [];
+        }
+        return parsed;
+      }
     } catch {
       // ignore
     }
-    return INITIAL_SAVINGS_GOALS;
+    return [];
   });
 
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [goalModalMode, setGoalModalMode] = useState<'create' | 'edit' | 'allocate'>('create');
 
+  // Demo Mode Restrictions & Interceptor State
+  const [isDemoRestrictedModalOpen, setIsDemoRestrictedModalOpen] = useState(false);
+  const [demoRestrictedAction, setDemoRestrictedAction] = useState<'add' | 'edit' | 'delete' | 'category' | 'goal' | 'general'>('general');
+
+  const requireUserAuth = (action: 'add' | 'edit' | 'delete' | 'category' | 'goal' | 'general'): boolean => {
+    if (!currentUser) {
+      setDemoRestrictedAction(action);
+      setIsDemoRestrictedModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleOpenAddModal = (preselectedType?: TransactionType) => {
+    if (!requireUserAuth('add')) return;
+    setEditingTransaction(null);
+    setModalPreselectedDate(undefined);
+    setModalPreselectedCategory(undefined);
+    setModalPreselectedType(preselectedType);
+    setIsAddModalOpen(true);
+  };
+
   const handleOpenAddGoal = () => {
+    if (!requireUserAuth('goal')) return;
     setEditingGoal(null);
     setGoalModalMode('create');
     setIsGoalModalOpen(true);
   };
 
   const handleOpenEditGoal = (goal: SavingsGoal) => {
+    if (!requireUserAuth('goal')) return;
     setEditingGoal(goal);
     setGoalModalMode('edit');
     setIsGoalModalOpen(true);
   };
 
   const handleOpenAllocateSurplus = (goal: SavingsGoal) => {
+    if (!requireUserAuth('goal')) return;
     setEditingGoal(goal);
     setGoalModalMode('allocate');
     setIsGoalModalOpen(true);
   };
 
-  const handleOpenAddModalWithDate = (date: string) => {
+  const handleOpenAddModalWithDate = (date: string, preselectedType?: TransactionType) => {
+    if (!requireUserAuth('add')) return;
     setEditingTransaction(null);
     setModalPreselectedDate(date);
     setModalPreselectedCategory(undefined);
+    setModalPreselectedType(preselectedType);
     setIsAddModalOpen(true);
   };
 
   const handleOpenAddModalWithCategory = (catId: string) => {
+    if (!requireUserAuth('add')) return;
     setEditingTransaction(null);
     setModalPreselectedDate(undefined);
     setModalPreselectedCategory(catId);
+    setModalPreselectedType(undefined);
     setIsAddModalOpen(true);
   };
 
@@ -181,7 +228,13 @@ export default function App() {
     setIsPdfModalOpen(true);
   };
 
+  const handleOpenCategoryManager = () => {
+    if (!requireUserAuth('category')) return;
+    setIsCategoryManagerOpen(true);
+  };
+
   const handleOpenSubCategoryManager = (catId?: string) => {
+    if (!requireUserAuth('category')) return;
     setSubCategoryModalCatId(catId);
     setIsSubCategoryModalOpen(true);
   };
@@ -207,6 +260,7 @@ export default function App() {
 
   // Category Management Handlers
   const handleAddCategory = (newCat: CategoryBudget) => {
+    if (!requireUserAuth('category')) return;
     setCategories((prev) => [...prev, newCat]);
     addToast({
       type: 'success',
@@ -219,6 +273,7 @@ export default function App() {
   };
 
   const handleUpdateCategory = (updatedCat: CategoryBudget) => {
+    if (!requireUserAuth('category')) return;
     setCategories((prev) => prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)));
     addToast({
       type: 'info',
@@ -231,6 +286,7 @@ export default function App() {
   };
 
   const handleDeleteCategory = (catId: string) => {
+    if (!requireUserAuth('category')) return;
     const cat = categories.find((c) => c.id === catId);
     setCategories((prev) => prev.filter((c) => c.id !== catId));
     if (selectedCategory === catId) {
@@ -257,6 +313,7 @@ export default function App() {
 
   // SubCategory Handlers
   const handleAddSubCategory = (newSub: SubCategory) => {
+    if (!requireUserAuth('category')) return;
     setSubCategories((prev) => [...prev, newSub]);
     addToast({
       type: 'success',
@@ -269,6 +326,7 @@ export default function App() {
   };
 
   const handleDeleteSubCategory = (id: string) => {
+    if (!requireUserAuth('category')) return;
     const sub = subCategories.find((s) => s.id === id);
     setSubCategories((prev) => prev.filter((s) => s.id !== id));
     // Clear subCategory field on transactions that used this subcategory
@@ -321,6 +379,7 @@ export default function App() {
 
   // Savings Goal Handlers
   const handleSaveGoal = (goalToSave: SavingsGoal) => {
+    if (!requireUserAuth('goal')) return;
     const isEdit = savingsGoals.some((g) => g.id === goalToSave.id);
     if (isEdit) {
       setSavingsGoals((prev) => prev.map((g) => (g.id === goalToSave.id ? goalToSave : g)));
@@ -346,6 +405,7 @@ export default function App() {
   };
 
   const handleDeleteGoal = (goalId: string) => {
+    if (!requireUserAuth('goal')) return;
     const goal = savingsGoals.find((g) => g.id === goalId);
     setSavingsGoals((prev) => prev.filter((g) => g.id !== goalId));
     if (goal) {
@@ -361,6 +421,7 @@ export default function App() {
   };
 
   const handleAllocateSurplus = (goalId: string, amount: number, note?: string) => {
+    if (!requireUserAuth('goal')) return;
     const goal = savingsGoals.find((g) => g.id === goalId);
     if (!goal) return;
 
@@ -382,6 +443,7 @@ export default function App() {
   };
 
   const handleQuickAllocate = (goalId: string, amount: number) => {
+    if (!requireUserAuth('goal')) return;
     handleAllocateSurplus(goalId, amount);
   };
 
@@ -393,7 +455,7 @@ export default function App() {
     setCurrency(profile.currency);
 
     const userCategories = buildUserCategories(profile.expenses);
-    const userTransactions = generateUserTransactions(profile);
+    const userTransactions: Transaction[] = []; // Starts clean and empty as requested!
 
     setCategories(userCategories);
     setTransactions(userTransactions);
@@ -402,8 +464,9 @@ export default function App() {
     try {
       localStorage.setItem('felladina_users', JSON.stringify(updatedProfiles));
       localStorage.setItem('felladina_active_user', JSON.stringify(profile));
-      localStorage.setItem(`felladina_tx_${profile.id}`, JSON.stringify(userTransactions));
+      localStorage.setItem(`felladina_tx_${profile.id}`, JSON.stringify([]));
       localStorage.setItem(`felladina_cat_${profile.id}`, JSON.stringify(userCategories));
+      localStorage.setItem('felladina_transactions', JSON.stringify([]));
     } catch {
       // ignore
     }
@@ -412,8 +475,8 @@ export default function App() {
       type: 'success',
       title: `Bienvenue, ${profile.name} !`,
       titleDarija: `Marhba bik, ${profile.name} !`,
-      message: `Votre profil financier a été configuré avec succès. Tous vos calculs (KPIs, cascade de trésorerie, alertes et prévisions sur 3 mois) sont maintenant calculés à partir de vos propres revenus et charges.`,
-      messageDarija: `L-mizaniya dyalek t-hassbat b nja7 b l-flous li 3titi.`,
+      message: `Votre espace financier personnel est prêt et vierge. Vous pouvez dès à présent enregistrer vos rentrées et dépenses quotidiennes.`,
+      messageDarija: `L-mizaniya dyalek wajda. Bda ddkhel l-masarif w l-madkhoul dyalek.`,
       durationMs: 6500,
     });
   };
@@ -428,20 +491,22 @@ export default function App() {
       const savedTx = localStorage.getItem(`felladina_tx_${profile.id}`);
       const savedCat = localStorage.getItem(`felladina_cat_${profile.id}`);
 
-      if (savedTx && savedCat) {
+      if (savedTx) {
         setTransactions(JSON.parse(savedTx));
+      } else {
+        setTransactions([]);
+      }
+
+      if (savedCat) {
         setCategories(JSON.parse(savedCat));
       } else {
         const userCategories = buildUserCategories(profile.expenses);
-        const userTransactions = generateUserTransactions(profile);
         setCategories(userCategories);
-        setTransactions(userTransactions);
       }
     } catch {
       const userCategories = buildUserCategories(profile.expenses);
-      const userTransactions = generateUserTransactions(profile);
       setCategories(userCategories);
-      setTransactions(userTransactions);
+      setTransactions([]);
     }
 
     setSelectedCategory('all');
@@ -450,7 +515,7 @@ export default function App() {
       type: 'info',
       title: `Session chargée : ${profile.name}`,
       titleDarija: `Marhba b rjou3ek, ${profile.name}`,
-      message: `Votre tableau de bord a été actualisé avec vos données de revenus et de dépenses enregistrées.`,
+      message: `Votre tableau de bord a été actualisé avec vos opérations enregistrées.`,
       messageDarija: `L-ma3loumat d l-7ssab dyalek t-charjaw b nja7.`,
       durationMs: 4000,
     });
@@ -468,7 +533,7 @@ export default function App() {
       type: 'info',
       title: 'Déconnexion effectuée',
       titleDarija: 'Khrjti mn l-7ssab',
-      message: 'Vous pouvez vous reconnecter à tout moment ou continuer en mode démo.',
+      message: 'Vous pouvez vous reconnecter à tout moment pour retrouver vos données.',
       messageDarija: 'Rak daba f mode consultation.',
       durationMs: 3500,
     });
@@ -476,29 +541,25 @@ export default function App() {
 
   // Reset data handler
   const handleResetData = () => {
-    if (window.confirm('Voulez-vous réinitialiser les données de démonstration ?')) {
-      setCurrentUser(null);
+    if (window.confirm('Voulez-vous réinitialiser toutes les opérations pour repartir sur un tableau de bord vierge ?')) {
+      setTransactions([]);
+      setSavingsGoals([]);
       try {
-        localStorage.removeItem('felladina_active_user');
-      } catch {
-        // ignore
-      }
-      setTransactions(INITIAL_TRANSACTIONS);
-      setCategories(INITIAL_CATEGORIES);
-      setSubCategories(INITIAL_SUB_CATEGORIES);
-      setSavingsGoals(INITIAL_SAVINGS_GOALS);
-      setSelectedCategory('all');
-      try {
+        localStorage.removeItem('felladina_transactions');
         localStorage.removeItem('felladina_savings_goals');
+        if (currentUser?.id) {
+          localStorage.removeItem(`felladina_tx_${currentUser.id}`);
+          localStorage.removeItem(`felladina_savings_goals_${currentUser.id}`);
+        }
       } catch {
         // ignore
       }
       addToast({
         type: 'info',
-        title: 'Données réinitialisées',
-        titleDarija: 'I3adat ta3yin l-ma3loumat',
-        message: 'Les données de démonstration et sous-catégories ont été restaurées.',
-        messageDarija: 'L-ma3loumat d démonstration rj3o kifma kanou.',
+        title: 'Espace réinitialisé',
+        titleDarija: 'I3adat ta3yin',
+        message: 'Toutes les opérations ont été effacées. Votre application est propre et vierge.',
+        messageDarija: 'L-mizaniya rj3at khawya.',
         durationMs: 3500,
       });
     }
@@ -547,6 +608,7 @@ export default function App() {
     txData: Omit<Transaction, 'id'>,
     editId?: string
   ) => {
+    if (!requireUserAuth(editId ? 'edit' : 'add')) return;
     if (editId) {
       setTransactions((prev) =>
         prev.map((t) => (t.id === editId ? { ...txData, id: editId } : t))
@@ -637,11 +699,13 @@ export default function App() {
   };
 
   const handleEditTransaction = (tx: Transaction) => {
+    if (!requireUserAuth('edit')) return;
     setEditingTransaction(tx);
     setIsAddModalOpen(true);
   };
 
   const handleDeleteTransaction = (id: string) => {
+    if (!requireUserAuth('delete')) return;
     const tx = transactions.find((t) => t.id === id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     if (tx) {
@@ -673,15 +737,10 @@ export default function App() {
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         categories={categories}
-        onOpenAddModal={() => {
-          setEditingTransaction(null);
-          setModalPreselectedDate(undefined);
-          setModalPreselectedCategory(undefined);
-          setIsAddModalOpen(true);
-        }}
+        onOpenAddModal={handleOpenAddModal}
         onOpenExportModal={() => setIsExportModalOpen(true)}
         onOpenPdfModal={() => handleOpenPdfModal()}
-        onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
+        onOpenCategoryManager={handleOpenCategoryManager}
         onOpenSubCategoryManager={() => handleOpenSubCategoryManager()}
         onResetData={handleResetData}
         currentUser={currentUser}
@@ -700,6 +759,65 @@ export default function App() {
           language={language}
           selectedCategoryName={selectedCategoryName}
           currentUser={currentUser}
+          onOpenSignUp={() => setIsAuthModalOpen(true)}
+        />
+
+        {/* Demo Mode Notice Banner for Unauthenticated Visitors */}
+        {!currentUser && (
+          <div className="mb-6 rounded-xl border border-[#E5DAC8] dark:border-[#383025] bg-gradient-to-r from-[#FAF6EE] via-[#FDFBF7] to-[#F5ECE5] dark:from-[#211D18] dark:via-[#1D1B17] dark:to-[#261E1A] p-4 sm:p-5 shadow-xs transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-lg bg-[#A24824]/10 dark:bg-[#A24824]/20 flex items-center justify-center shrink-0 mt-0.5 text-[#A24824] dark:text-[#E8734C]">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[#2C2722] dark:text-[#F2EFEA]">
+                      {language === 'ar_ma'
+                        ? 'Mode Démonstration · Consultation en lecture seule'
+                        : language === 'en'
+                        ? 'Demo Mode · Read-only preview'
+                        : 'Mode Démonstration · Consultation en lecture seule'}
+                    </h3>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#A24824]/10 dark:bg-[#A24824]/20 text-[#A24824] dark:text-[#E8734C]">
+                      {language === 'ar_ma' ? 'Démo' : 'Demo'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-[#6A6154] dark:text-[#B6AEA3] leading-relaxed max-w-2xl">
+                    {language === 'ar_ma'
+                      ? 'Nta daba kat-chof l-ma3loumat d démo. Bach t-bda t-zid aw t-mssa7 l-masarif w l-madkhoul dyalek w thseb 3la 7ssabak, khassk t-fte7 7ssab jdid.'
+                      : language === 'en'
+                      ? 'You are exploring live demo data. To add, edit, or delete transactions and track your personal finances, please create an account.'
+                      : 'Vous explorez actuellement les données de démonstration. L’ajout, la modification et la suppression d’opérations sont réservés aux comptes connectés.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>
+                    {language === 'ar_ma'
+                      ? 'Fte7 7ssab (Sign Up)'
+                      : language === 'en'
+                      ? 'Create an Account'
+                      : 'Créer mon compte'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Daily Entry Banner for Fast Incomes & Expenses Logging */}
+        <DailyEntryBanner
+          transactions={transactions}
+          currency={currency}
+          language={language}
+          currentUser={currentUser}
+          onOpenAddModalWithType={(type) => handleOpenAddModal(type)}
           onOpenSignUp={() => setIsAuthModalOpen(true)}
         />
 
@@ -743,19 +861,15 @@ export default function App() {
           subCategories={subCategories}
           currency={currency}
           language={language}
-          onOpenAddModal={() => {
-            setEditingTransaction(null);
-            setModalPreselectedDate(undefined);
-            setModalPreselectedCategory(undefined);
-            setIsAddModalOpen(true);
-          }}
+          onOpenAddModal={handleOpenAddModal}
           onOpenExportModal={() => setIsExportModalOpen(true)}
           onOpenPdfModal={() => handleOpenPdfModal()}
           onOpenCategoryDetail={handleOpenCategoryDetail}
-          onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
+          onOpenCategoryManager={handleOpenCategoryManager}
           onOpenSubCategoryManager={handleOpenSubCategoryManager}
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={handleDeleteTransaction}
+          isDemoMode={!currentUser}
         />
 
         {/* Section 04: Interactive Financial Calendar & Cash Flow Chronology */}
@@ -768,6 +882,7 @@ export default function App() {
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={handleDeleteTransaction}
           onOpenPdfModal={(monthKey) => handleOpenPdfModal(monthKey)}
+          isDemoMode={!currentUser}
         />
 
         {/* Section 05: Predictive Budget Forecast & 3-Month Projection */}
@@ -790,6 +905,7 @@ export default function App() {
           onOpenAllocateSurplusModal={handleOpenAllocateSurplus}
           onDeleteGoal={handleDeleteGoal}
           onQuickAllocate={handleQuickAllocate}
+          isDemoMode={!currentUser}
         />
 
         {/* Footer notes strip */}
@@ -804,6 +920,7 @@ export default function App() {
           setEditingTransaction(null);
           setModalPreselectedDate(undefined);
           setModalPreselectedCategory(undefined);
+          setModalPreselectedType(undefined);
         }}
         onSave={handleSaveTransaction}
         categories={categories}
@@ -813,6 +930,7 @@ export default function App() {
         editingTransaction={editingTransaction}
         initialDate={modalPreselectedDate}
         initialCategory={modalPreselectedCategory}
+        initialType={modalPreselectedType}
         currency={currency}
         language={language}
       />
@@ -925,6 +1043,22 @@ export default function App() {
         mode={goalModalMode}
         monthlySurplus={Math.max(0, netSavings)}
         currency={currency}
+        language={language}
+      />
+
+      {/* Demo Restricted Interceptor Modal for Unauthenticated Users */}
+      <DemoRestrictedModal
+        isOpen={isDemoRestrictedModalOpen}
+        onClose={() => setIsDemoRestrictedModalOpen(false)}
+        onOpenSignUp={() => {
+          setIsDemoRestrictedModalOpen(false);
+          setIsAuthModalOpen(true);
+        }}
+        onOpenSignIn={() => {
+          setIsDemoRestrictedModalOpen(false);
+          setIsAuthModalOpen(true);
+        }}
+        actionAttempted={demoRestrictedAction}
         language={language}
       />
 

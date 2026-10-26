@@ -1,6 +1,6 @@
 import React from 'react';
 import { PeriodFilter, Currency, Language, Theme, UserProfile } from '../types';
-import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus, Sparkles, UserPlus, PiggyBank } from 'lucide-react';
+import { Plus, ChevronDown, RefreshCw, FileSpreadsheet, FileText, Sun, Moon, Layers, FolderPlus, Sparkles, UserPlus, PiggyBank, Lock } from 'lucide-react';
 import { UserProfileMenu } from './UserProfileMenu';
 
 interface TopNavProps {
@@ -147,10 +147,22 @@ export const TopNav: React.FC<TopNavProps> = ({
 
             <button
               onClick={onOpenAddModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm"
+              title={
+                !currentUser
+                  ? language === 'ar_ma'
+                    ? 'Mode Démo : Inscription requise pour ajouter une transaction'
+                    : 'Mode Démo : Inscription requise pour ajouter une transaction'
+                  : undefined
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              <span>Ajouter</span>
+              {!currentUser ? <Lock className="w-3.5 h-3.5 opacity-90" /> : <Plus className="w-4 h-4" />}
+              <span>{language === 'ar_ma' ? '+ Zid' : 'Ajouter'}</span>
+              {!currentUser && (
+                <span className="hidden sm:inline text-[9px] px-1 py-0.2 bg-black/20 rounded font-mono uppercase tracking-wider">
+                  Démo
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -355,9 +367,14 @@ export const TopNav: React.FC<TopNavProps> = ({
           {/* Desktop Primary CTA */}
           <button
             onClick={onOpenAddModal}
-            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow"
+            title={!currentUser ? (language === 'ar_ma' ? 'Démo: Dkhol b 7ssab bach t-zid transaction' : 'Mode Démo : Créez un compte pour ajouter des opérations') : undefined}
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow group"
           >
-            <Plus className="w-4 h-4" />
+            {!currentUser ? (
+              <Lock className="w-3.5 h-3.5 text-white/80 group-hover:text-white" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
             <span>
               {language === 'ar_ma'
                 ? '+ Zid Flous / Masrouf'
@@ -365,6 +382,11 @@ export const TopNav: React.FC<TopNavProps> = ({
                 ? '+ New Entry'
                 : '+ Nouvelle Transaction'}
             </span>
+            {!currentUser && (
+              <span className="ml-0.5 text-[10px] font-medium bg-black/25 text-white/90 px-1.5 py-0.5 rounded leading-none">
+                Démo
+              </span>
+            )}
           </button>
         </div>
       </div>

@@ -42,24 +42,25 @@ export const Section02Breakdown: React.FC<Section02BreakdownProps> = ({
     .filter((t) => t.category === 'logement')
     .reduce((s, t) => s + t.amount, 0);
 
+  const maxSegment = Math.max(freelanceSpend, salarySpend, housingSpend, 1);
   const segmentGrowth = [
     {
       name: language === 'ar_ma' ? 'Freelance & Pro' : 'Freelance / Pro',
-      amount: freelanceSpend || 7200,
-      growth: '+35%',
-      barHeight: 88,
+      amount: freelanceSpend,
+      growth: freelanceSpend > 0 ? 'Actif' : '0%',
+      barHeight: freelanceSpend > 0 ? Math.round((freelanceSpend / maxSegment) * 88) : 8,
     },
     {
       name: language === 'ar_ma' ? 'Salaire Fixe' : 'Revenus Salarié',
-      amount: salarySpend || 19500,
-      growth: '+12%',
-      barHeight: 62,
+      amount: salarySpend,
+      growth: salarySpend > 0 ? 'Actif' : '0%',
+      barHeight: salarySpend > 0 ? Math.round((salarySpend / maxSegment) * 88) : 8,
     },
     {
       name: language === 'ar_ma' ? 'Logement & Fixe' : 'Charges Logement',
-      amount: housingSpend || 4500,
-      growth: '+2%',
-      barHeight: 38,
+      amount: housingSpend,
+      growth: housingSpend > 0 ? 'Actif' : '0%',
+      barHeight: housingSpend > 0 ? Math.round((housingSpend / maxSegment) * 88) : 8,
     },
   ];
 

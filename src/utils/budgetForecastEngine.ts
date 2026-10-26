@@ -86,40 +86,8 @@ export function computeBudgetForecast({
   const expenseCategories = categories.filter((c) => c.type === 'expense');
   const allocatedMonthlyBudgetCap = expenseCategories.reduce((sum, c) => sum + (c.allocatedBudget || 0), 0) || 18500;
 
-  // 2. Aggregate monthly actual data from transactions + rich baseline
+  // 2. Aggregate monthly actual data strictly from user transactions
   const historicalMonthMap = new Map<string, { income: number; expense: number; catExpenses: Record<string, number> }>();
-
-  // Baseline seed to ensure stable statistical sample even with new transactions
-  const baselineSeed: Record<string, { income: number; expense: number; catExpenses: Record<string, number> }> = {
-    '2026-06': {
-      income: 27100,
-      expense: 16100,
-      catExpenses: { logement: 4500, alimentation: 3800, transport: 1800, factures: 1400, loisirs: 1900, sante: 600, epargne_invest: 2100 },
-    },
-    '2026-07': {
-      income: 28900,
-      expense: 17400,
-      catExpenses: { logement: 4500, alimentation: 4100, transport: 2100, factures: 1450, loisirs: 2400, sante: 750, epargne_invest: 2100 },
-    },
-    '2026-08': {
-      income: 29800,
-      expense: 18200,
-      catExpenses: { logement: 4500, alimentation: 4300, transport: 2300, factures: 1520, loisirs: 2600, sante: 880, epargne_invest: 2100 },
-    },
-    '2026-09': {
-      income: 30500,
-      expense: 17900,
-      catExpenses: { logement: 4500, alimentation: 4200, transport: 2200, factures: 1480, loisirs: 2500, sante: 920, epargne_invest: 2100 },
-    },
-  };
-
-  Object.entries(baselineSeed).forEach(([mKey, data]) => {
-    historicalMonthMap.set(mKey, {
-      income: data.income,
-      expense: data.expense,
-      catExpenses: { ...data.catExpenses },
-    });
-  });
 
   // Aggregate user transactions
   transactions.forEach((tx) => {
@@ -136,11 +104,17 @@ export function computeBudgetForecast({
     historicalMonthMap.set(mKey, existing);
   });
 
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  if (!historicalMonthMap.has(currentMonthKey)) {
+    historicalMonthMap.set(currentMonthKey, { income: 0, expense: 0, catExpenses: {} });
+  }
+
   // Sort historical months chronologically
   const sortedMonthKeys = Array.from(historicalMonthMap.keys()).sort();
   // Take the last 4 historical months
   const recentHistoricalKeys = sortedMonthKeys.slice(-4);
-  const latestMonthKey = recentHistoricalKeys[recentHistoricalKeys.length - 1] || '2026-10';
+  const latestMonthKey = recentHistoricalKeys[recentHistoricalKeys.length - 1] || currentMonthKey;
 
   const historicalExpenseSeries = recentHistoricalKeys.map((k) => historicalMonthMap.get(k)?.expense || 0);
   const historicalIncomeSeries = recentHistoricalKeys.map((k) => historicalMonthMap.get(k)?.income || 0);
@@ -151,16 +125,15 @@ export function computeBudgetForecast({
   const avgHistoricalIncome = historicalIncomeSeries.reduce((s, v) => s + v, 0) / (n || 1);
 
   const variance = historicalExpenseSeries.reduce((acc, v) => acc + Math.pow(v - avgHistoricalExpense, 2), 0) / (n || 1);
-  const stdDev = Math.sqrt(variance) || 850;
+  const stdDev = avgHistoricalExpense > 0 ? Math.sqrt(variance) : 0;
 
   // Simple weighted trend calculation (m = slope)
-  // Give weights 1, 2, 3, 4 to recent months
   let weightedSumDiff = 0;
   for (let i = 1; i < n; i++) {
     const diff = historicalExpenseSeries[i] - historicalExpenseSeries[i - 1];
     weightedSumDiff += diff * (i / n);
   }
-  const rawMonthlyTrendSlope = (weightedSumDiff / (n - 1 || 1)) || 280;
+  const rawMonthlyTrendSlope = avgHistoricalExpense > 0 && n > 1 ? (weightedSumDiff / (n - 1)) : 0;
 
   // Scenario multipliers
   let scenarioSlopeMultiplier = 1.0;
