@@ -17,7 +17,6 @@ interface Section03DetailTableProps {
   onOpenSubCategoryManager?: (categoryId?: string) => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
-  isDemoMode?: boolean;
 }
 
 export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
@@ -34,7 +33,6 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
   onOpenSubCategoryManager,
   onEditTransaction,
   onDeleteTransaction,
-  isDemoMode = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'categories' | 'transactions'>('categories');
   const [searchQuery, setSearchQuery] = useState('');
@@ -363,22 +361,10 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
 
             <button
               onClick={onOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
-              title={
-                isDemoMode
-                  ? language === 'ar_ma'
-                    ? 'Mode Démo : Khassk 7ssab bach tzid'
-                    : 'Mode Démo : Inscription requise pour ajouter une transaction'
-                  : undefined
-              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              {isDemoMode ? <Lock className="w-3.5 h-3.5 opacity-90" /> : <Plus className="w-3.5 h-3.5" />}
+              <Plus className="w-3.5 h-3.5" />
               <span>{language === 'ar_ma' ? '+ Zid' : '+ Ajouter'}</span>
-              {isDemoMode && (
-                <span className="hidden sm:inline text-[9px] px-1 py-0.2 bg-black/20 rounded font-mono uppercase tracking-wider">
-                  Démo
-                </span>
-              )}
             </button>
           </div>
         </div>
@@ -672,8 +658,8 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
               </div>
             </div>
 
-            {/* Transactions List */}
-            <div className="overflow-x-auto">
+            {/* Transactions List Desktop Table (hidden sm:block) */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-[#EBE6DC] dark:border-[#312E28] text-[#7A7163] dark:text-[#9A9184] uppercase tracking-wider text-[10px] font-semibold bg-[#FDFCF9] dark:bg-[#22201B]">
@@ -812,15 +798,15 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   onClick={() => onEditTransaction(tx)}
-                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded"
-                                  title={isDemoMode ? "Mode Démo : Inscription requise pour modifier" : "Modifier"}
+                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded transition-colors"
+                                  title="Modifier"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => onDeleteTransaction(tx.id)}
-                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded"
-                                  title={isDemoMode ? "Mode Démo : Inscription requise pour supprimer" : "Supprimer"}
+                                  className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded transition-colors"
+                                  title="Supprimer"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -861,6 +847,145 @@ export const Section03DetailTable: React.FC<Section03DetailTableProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Transactions Mobile Card List (sm:hidden) */}
+            <div className="sm:hidden divide-y divide-[#EBE6DC] dark:divide-[#312E28]">
+              {filteredTransactions.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="w-10 h-10 rounded-full bg-[#FAF0E6] dark:bg-[#34241D] flex items-center justify-center text-[#A24824] dark:text-[#E8734C] mx-auto mb-3">
+                    {transactions.length === 0 ? <Plus className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+                  </div>
+                  <h4 className="text-sm font-semibold text-[#25201B] dark:text-[#F2EFEA] mb-1">
+                    {transactions.length === 0
+                      ? language === 'ar_ma'
+                        ? 'Hta chi opération msjjla daba'
+                        : 'Aucune opération enregistrée'
+                      : language === 'ar_ma'
+                      ? 'Walou ma lqinah'
+                      : 'Aucune opération trouvée'}
+                  </h4>
+                  <p className="text-xs text-[#7C7365] dark:text-[#9A9184] mb-3 leading-relaxed">
+                    {transactions.length === 0
+                      ? language === 'ar_ma'
+                        ? 'Bda ddkhel l-madkhoul dyalek w l-masarif yawmiyan.'
+                        : 'Commencez à saisir vos rentrées et dépenses quotidiennes.'
+                      : 'Modifiez vos filtres ou réinitialisez la recherche.'}
+                  </p>
+                  {transactions.length === 0 ? (
+                    <button
+                      onClick={onOpenAddModal}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{language === 'ar_ma' ? '+ Zid opération' : '+ Ajouter une opération'}</span>
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                filteredTransactions.map((tx) => {
+                  const cat = categories.find((c) => c.id === tx.category);
+                  const sub = subCategories.find((s) => s.id === tx.subCategory);
+                  const hasItems = tx.items && tx.items.length > 0;
+                  const isExpanded = !!expandedTxIds[tx.id];
+
+                  return (
+                    <div key={tx.id} className="p-4 bg-white dark:bg-[#1E1D19] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono font-medium text-[#7A7163] dark:text-[#9A9184]">
+                            {tx.date}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              tx.type === 'income'
+                                ? 'bg-[#EAF1EB] text-[#2C623E] dark:bg-[#163020] dark:text-[#67B588]'
+                                : 'bg-[#FBEAE6] text-[#A24824] dark:bg-[#3D1E16] dark:text-[#E8734C]'
+                            }`}
+                          >
+                            {tx.type === 'income' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownLeft className="w-3 h-3" />}
+                            {tx.type === 'income' ? (language === 'ar_ma' ? 'Rentrée' : 'Rentrée') : (language === 'ar_ma' ? 'Dépense' : 'Dépense')}
+                          </span>
+                        </div>
+                        <div
+                          className={`font-mono font-bold text-sm ${
+                            tx.type === 'income' ? 'text-[#3B6B55] dark:text-[#52A36F]' : 'text-[#A24824] dark:text-[#E8734C]'
+                          }`}
+                        >
+                          {tx.type === 'income' ? '+' : '-'}
+                          {Math.round(tx.amount).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-semibold text-xs sm:text-sm text-[#25201B] dark:text-[#F2EFEA]">
+                          {tx.note}
+                        </div>
+                        {tx.recipientOrSource && (
+                          <div className="text-[11px] text-[#867C6E] dark:text-[#9A9184] mt-0.5">
+                            {language === 'ar_ma' ? 'Tiers / Source :' : 'Tiers :'} <span className="font-medium text-[#25201B] dark:text-[#ECE7DE]">{tx.recipientOrSource}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#FAF8F5] dark:bg-[#272520] border border-[#EBE6DC] dark:border-[#38342D] text-[#4A4237] dark:text-[#DDD6C8]">
+                          <span className="w-2 h-2 rounded-xs" style={{ backgroundColor: cat?.color || '#8C8375' }} />
+                          <span>{language === 'ar_ma' && cat ? cat.labelDarija : cat?.label || tx.category}</span>
+                        </span>
+                        {sub && (
+                          <span className="px-2 py-0.5 rounded bg-[#FAF8F5] dark:bg-[#272520] border border-[#EBE6DC] dark:border-[#38342D] text-[#6A6052] dark:text-[#B6AEA3]">
+                            {language === 'ar_ma' ? sub.nameDarija || sub.name : sub.name}
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded bg-[#F4F1EA] dark:bg-[#2B2924] text-[#7A7163] dark:text-[#9A9184] capitalize">
+                          {tx.paymentMethod}
+                        </span>
+                      </div>
+
+                      {hasItems && (
+                        <div className="pt-1">
+                          <button
+                            onClick={() => toggleExpand(tx.id)}
+                            className="text-[11px] text-[#A24824] dark:text-[#E8734C] font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            <span>{tx.items?.length} articles détaillés ({isExpanded ? 'Masquer' : 'Voir'})</span>
+                          </button>
+                          {isExpanded && (
+                            <div className="mt-2 p-2.5 bg-[#FAF8F5] dark:bg-[#26241F] rounded-lg border border-[#E5DFD3] dark:border-[#383329] space-y-1 text-xs">
+                              {tx.items?.map((it) => (
+                                <div key={it.id} className="flex justify-between py-0.5 border-b border-[#F0EBE0] dark:border-[#2D2A24] last:border-0">
+                                  <span className="text-[#332D25] dark:text-[#DDD6C8]">{it.name} {it.quantity && it.quantity > 1 ? `(x${it.quantity})` : ''}</span>
+                                  <span className="font-mono font-semibold text-[#A24824] dark:text-[#E8734C]">{Math.round(it.totalPrice).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Mobile Actions: Touch targets */}
+                      <div className="pt-2 border-t border-[#F2EFE8] dark:border-[#2C2923] flex items-center gap-2">
+                        <button
+                          onClick={() => onEditTransaction(tx)}
+                          className="flex-1 py-1.5 px-3 rounded-lg border border-[#DDD7C9] dark:border-[#38352F] bg-[#FAF8F5] dark:bg-[#25231F] text-xs font-semibold text-[#4A4237] dark:text-[#DDD6C8] hover:text-[#A24824] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-[#A24824]" />
+                          <span>{language === 'ar_ma' ? 'Beddel' : 'Modifier'}</span>
+                        </button>
+                        <button
+                          onClick={() => onDeleteTransaction(tx.id)}
+                          className="py-1.5 px-3 rounded-lg border border-[#FFD8CC] dark:border-[#4D2418] bg-[#FFF5F2] dark:bg-[#2C1914] text-xs font-semibold text-[#C2410C] dark:text-[#F87171] hover:bg-[#FFEAE3] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{language === 'ar_ma' ? 'Mseh' : 'Supprimer'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

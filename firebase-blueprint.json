@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with display settings and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "currency": { "type": "string", "enum": ["MAD", "EUR", "USD"] },
+        "language": { "type": "string", "enum": ["fr", "ar_ma", "en"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial income or expense transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 20 },
+        "amount": { "type": "number" },
+        "category": { "type": "string", "maxLength": 50 },
+        "subCategory": { "type": "string", "maxLength": 50 },
+        "note": { "type": "string", "maxLength": 250 },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "paymentMethod": { "type": "string", "enum": ["virement", "carte", "especes", "prelevement", "cheque"] },
+        "recipientOrSource": { "type": "string", "maxLength": 100 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "date", "amount", "category", "note", "type", "paymentMethod", "userId"]
+    },
+    "CategoryBudget": {
+      "title": "CategoryBudget",
+      "description": "Custom budget envelope for expenses or incomes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 50 },
+        "label": { "type": "string", "maxLength": 100 },
+        "labelDarija": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "allocatedBudget": { "type": "number" },
+        "color": { "type": "string", "maxLength": 20 },
+        "isCustom": { "type": "boolean" },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "label", "type", "allocatedBudget", "userId"]
+    },
+    "SavingsGoal": {
+      "title": "SavingsGoal",
+      "description": "Target project or savings reserve",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "nameDarija": { "type": "string", "maxLength": 100 },
+        "targetAmount": { "type": "number" },
+        "currentAmount": { "type": "number" },
+        "targetDate": { "type": "string", "maxLength": 20 },
+        "monthlyAllocation": { "type": "number" },
+        "category": { "type": "string", "maxLength": 50 },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "name", "targetAmount", "currentAmount", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User income and expense transactions"
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/CategoryBudget" },
+      "description": "User custom budget categories"
+    },
+    "/users/{userId}/savingsGoals/{goalId}": {
+      "schema": { "$ref": "#/entities/SavingsGoal" },
+      "description": "User savings goals and surplus allocation targets"
+    }
+  }
+}

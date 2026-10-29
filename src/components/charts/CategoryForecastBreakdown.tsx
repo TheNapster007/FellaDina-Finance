@@ -6,12 +6,14 @@ interface CategoryForecastBreakdownProps {
   categoryForecasts: CategoryForecastItem[];
   currency: Currency;
   language: Language;
+  isYearly?: boolean;
 }
 
 export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps> = ({
   categoryForecasts,
   currency,
   language,
+  isYearly = false,
 }) => {
   const [selectedMonthTab, setSelectedMonthTab] = useState<'m1' | 'm2' | 'm3'>('m1');
   const [filterMode, setFilterMode] = useState<'all' | 'over_budget'>('all');
@@ -26,19 +28,29 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
     return language === 'ar_ma' ? 'Ch-har 3 (M+3)' : 'Mois 3 (M+3)';
   };
 
+  const currencySymbol = currency === 'MAD' ? 'DH' : currency === 'EUR' ? '€' : '$';
+
   return (
-    <div className="bg-white dark:bg-[#1C1B17] rounded-xl border border-[#E7E2D6] dark:border-[#2F2C26] p-5 sm:p-6 shadow-xs transition-colors">
+    <div className="bg-white dark:bg-[#1C1B17] rounded-xl border border-[#E7E2D6] dark:border-[#2F2C26] p-4 sm:p-6 shadow-xs transition-colors">
       {/* Header with Month Tabs & Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h3 className="text-xs font-bold text-[#2B2621] dark:text-[#F2EFEA] uppercase tracking-wide flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-xs bg-[#5B7B68] inline-block" />
-            {language === 'ar_ma'
+            {isYearly
+              ? language === 'ar_ma'
+                ? 'Taqdir l-masrouf l-sanawi par poste (12 chhor)'
+                : 'Ventilation Prédictive Annuelle par Poste (12 Mois)'
+              : language === 'ar_ma'
               ? 'Taqdir d kol categorie f telt chhor jaya'
               : 'Ventilation Prédictive par Poste Budgétaire'}
           </h3>
           <p className="text-[11px] text-[#786F62] dark:text-[#9A9184] mt-0.5">
-            {language === 'ar_ma'
+            {isYearly
+              ? language === 'ar_ma'
+                ? 'Projection annuelle 3la 12 ch-har m9arana m3a l-plafond sanawi.'
+                : 'Projection annualisée sur 12 mois comparée aux enveloppes budgétaires annuelles.'
+              : language === 'ar_ma'
               ? 'Chof wach kol categorie ghadi tbqa ta7t l-plafond aw la.'
               : 'Évolution anticipée des charges par catégorie face aux plafonds budgétaires cibles.'}
           </p>
@@ -46,23 +58,25 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Month Step Switcher */}
-          <div className="inline-flex rounded-lg border border-[#DDD7C9] dark:border-[#38352F] bg-[#F4F1EA] dark:bg-[#25231F] p-0.5 text-xs">
-            {(['m1', 'm2', 'm3'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setSelectedMonthTab(tab)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                  selectedMonthTab === tab
-                    ? 'bg-white dark:bg-[#1C1B17] text-[#A24824] dark:text-[#E8734C] shadow-xs font-bold'
-                    : 'text-[#6A6154] dark:text-[#A69E91] hover:text-[#231F1C]'
-                }`}
-              >
-                {getMonthLabel(tab)}
-              </button>
-            ))}
-          </div>
+          {/* Month Step Switcher (only for monthly view) */}
+          {!isYearly && (
+            <div className="inline-flex rounded-lg border border-[#DDD7C9] dark:border-[#38352F] bg-[#F4F1EA] dark:bg-[#25231F] p-0.5 text-xs">
+              {(['m1', 'm2', 'm3'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setSelectedMonthTab(tab)}
+                  className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                    selectedMonthTab === tab
+                      ? 'bg-white dark:bg-[#1C1B17] text-[#A24824] dark:text-[#E8734C] shadow-xs font-bold'
+                      : 'text-[#6A6154] dark:text-[#A69E91] hover:text-[#231F1C]'
+                  }`}
+                >
+                  {getMonthLabel(tab)}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Over-budget filter toggle */}
           <button
@@ -75,8 +89,8 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
             }`}
           >
             {filterMode === 'over_budget'
-              ? (language === 'ar_ma' ? 'Kolchi (Afficher tout)' : 'Tous les postes')
-              : (language === 'ar_ma' ? '⚠️ Postes à risque' : '⚠️ Postes sous tension')}
+              ? (language === 'ar_ma' ? 'Afficher tout' : 'Tous les postes')
+              : (language === 'ar_ma' ? '⚠️ Postes à risque' : '⚠️ Sous tension')}
           </button>
         </div>
       </div>
@@ -92,24 +106,26 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
           </div>
         ) : (
           filteredCategories.map((item) => {
-            const projectedVal = selectedMonthTab === 'm1'
+            const rawProjected = isYearly
+              ? item.projectedM1 * 12
+              : selectedMonthTab === 'm1'
               ? item.projectedM1
               : selectedMonthTab === 'm2'
               ? item.projectedM2
               : item.projectedM3;
 
-            const budgetCap = item.allocatedBudget || 1;
-            const ratioPct = Math.round((projectedVal / budgetCap) * 100);
-            const isOver = projectedVal > budgetCap;
+            const budgetCap = (isYearly ? item.allocatedBudget * 12 : item.allocatedBudget) || 1;
+            const ratioPct = Math.round((rawProjected / budgetCap) * 100);
+            const isOver = rawProjected > budgetCap;
             const isWarning = ratioPct >= 85 && !isOver;
 
             return (
               <div
                 key={item.categoryId}
-                className="p-3 rounded-lg border border-[#EDE8DE] dark:border-[#2D2A24] bg-[#FAF8F4] dark:bg-[#181714] transition-colors"
+                className="p-3 sm:p-3.5 rounded-lg border border-[#EDE8DE] dark:border-[#2D2A24] bg-[#FAF8F4] dark:bg-[#181714] transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
@@ -120,11 +136,11 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
                     {isOver ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#C2410C] bg-[#FFF1EB] dark:bg-[#381B10] px-2 py-0.5 rounded border border-[#FFCCB8] dark:border-[#662812]">
                         <AlertCircle className="w-3 h-3" />
-                        {language === 'ar_ma' ? 'Khatar l-mizaniya' : 'Dépassement prévu'}
+                        {language === 'ar_ma' ? 'Khatar l-mizaniya' : 'Dépassement'}
                       </span>
                     ) : isWarning ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#B45309] bg-[#FEF3C7] dark:bg-[#342407] px-2 py-0.5 rounded border border-[#FDE68A] dark:border-[#5B3D0A]">
-                        {language === 'ar_ma' ? 'Ihtiyat (≥85%)' : 'Zone de vigilance'}
+                        {language === 'ar_ma' ? 'Ihtiyat (≥85%)' : 'Vigilance'}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3B6B55] bg-[#EAF5EF] dark:bg-[#14281E] px-2 py-0.5 rounded border border-[#C5E5D4] dark:border-[#234A36]">
@@ -134,15 +150,16 @@ export const CategoryForecastBreakdown: React.FC<CategoryForecastBreakdownProps>
                   </div>
 
                   {/* Values */}
-                  <div className="flex items-baseline gap-3 text-xs">
+                  <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 text-xs">
                     <div className="text-[11px] text-[#7E7466] dark:text-[#9A9184]">
-                      Hist. Moy: <span className="font-mono">{Math.round(item.historicalAverage).toLocaleString('fr-FR')}</span>
+                      {isYearly ? 'Base moy:' : 'Hist:'}{' '}
+                      <span className="font-mono">{Math.round(item.historicalAverage * (isYearly ? 12 : 1)).toLocaleString('fr-FR')}</span>
                     </div>
-                    <div className="font-mono font-bold text-[#A24824] dark:text-[#E8734C] text-sm">
-                      {Math.round(projectedVal).toLocaleString('fr-FR')} {currency === 'MAD' ? 'DH' : currency}
+                    <div className="font-mono font-bold text-[#A24824] dark:text-[#E8734C] text-xs sm:text-sm">
+                      {Math.round(rawProjected).toLocaleString('fr-FR')} {currencySymbol}
                     </div>
                     <div className="text-[11px] text-[#8C8375] font-mono">
-                      / {Math.round(item.allocatedBudget).toLocaleString('fr-FR')}
+                      / {Math.round(budgetCap).toLocaleString('fr-FR')}
                     </div>
                     <div
                       className={`text-[11px] font-bold font-mono ${

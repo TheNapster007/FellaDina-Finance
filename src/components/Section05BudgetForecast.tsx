@@ -35,6 +35,8 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
   currency,
   language,
 }) => {
+  // Forecast Horizon: 'monthly' (3 months) | 'yearly' (12 months)
+  const [forecastHorizon, setForecastHorizon] = useState<'monthly' | 'yearly'>('monthly');
   // Scenario state
   const [scenario, setScenario] = useState<ForecastScenario>('baseline');
   // Discretionary spending slider (-25% to +25%)
@@ -75,33 +77,73 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
       {/* Section Kicker & Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#A24824] dark:text-[#E8734C]">
               {language === 'ar_ma'
-                ? '05 / TAWAQO3AT L-MIZANIYA L-TELT CHHOR'
+                ? forecastHorizon === 'yearly'
+                  ? '05 / TAWAQO3AT L-MIZANIYA L-SANAWIYA'
+                  : '05 / TAWAQO3AT L-MIZANIYA L-TELT CHHOR'
                 : '05 / PRÉVISIONS & ANALYSE PRÉDICTIVE'}
             </span>
             <span className="text-xs text-[#8A8174]">•</span>
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#5B7B68] dark:text-[#7D9D8B]">
               <Sparkles className="w-3 h-3" />
-              {language === 'ar_ma' ? 'Projection sur 3 mois' : 'Horizon 3 mois (Trimestre T+1)'}
+              {forecastHorizon === 'yearly'
+                ? (language === 'ar_ma' ? 'Horizon 12 ch-har (Sanawi)' : 'Horizon 12 Mois (Projection Annuelle)')
+                : (language === 'ar_ma' ? 'Projection sur 3 mois' : 'Horizon 3 Mois (Trimestre T+1)')}
             </span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#201C18] dark:text-[#F2EFEA] tracking-tight">
             {language === 'ar_ma'
-              ? 'Tawaqo3at l-masrouf w l-mizaniya l-jayya'
+              ? forecastHorizon === 'yearly'
+                ? 'Tawaqo3at l-masrouf sanawiyan (12 ch-har)'
+                : 'Tawaqo3at l-masrouf w l-mizaniya l-jayya'
+              : forecastHorizon === 'yearly'
+              ? 'Projection Budgétaire Annuelle (12 Mois)'
               : 'Prévision Budgétaire & Projection des Dépenses'}
           </h2>
           <p className="text-xs sm:text-sm text-[#736B5E] dark:text-[#9F9688] mt-1 max-w-3xl">
-            {language === 'ar_ma'
-              ? 'Modèle prédictif li kay7ellel tariqa li katkhser biha f l-chhor li fato, w kay3tik tawaqo3at b deqqa l-telt chhor jaya m3a scénarios d l&apos;épargne.'
-              : 'Modèle prédictif pondéré calculant l\'évolution prévisible de vos charges pour les 3 prochains mois selon votre historique réel et les plafonds budgétaires cibles.'}
+            {forecastHorizon === 'yearly'
+              ? (language === 'ar_ma'
+                  ? 'Modèle prédictif annualisé li kay7ellel l-masarif w l-madakhil dyalk 3la modda dyal 12 ch-har jaya b tariqa deqiqqa.'
+                  : 'Modèle prédictif annualisé simulant vos charges et excédents sur un horizon de 12 mois complets avec lissage des cycles financiers.')
+              : (language === 'ar_ma'
+                  ? 'Modèle prédictif li kay7ellel tariqa li katkhser biha f l-chhor li fato, w kay3tik tawaqo3at b deqqa l-telt chhor jaya m3a scénarios d l\'épargne.'
+                  : 'Modèle prédictif pondéré calculant l\'évolution prévisible de vos charges pour les 3 prochains mois selon votre historique réel.')}
           </p>
         </div>
 
-        {/* View Switcher & Methodology Trigger */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        {/* View Switcher, Horizon Switcher & Methodology Trigger */}
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          {/* Monthly vs Yearly Horizon Toggle */}
+          <div className="inline-flex rounded-lg border border-[#DDD7C9] dark:border-[#38352F] bg-[#FAF8F4] dark:bg-[#201F1B] p-0.5 text-xs shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('monthly')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                forecastHorizon === 'monthly'
+                  ? 'bg-[#A24824] text-white shadow-xs font-semibold'
+                  : 'text-[#6F6659] dark:text-[#9A9184] hover:text-[#231F1C]'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{language === 'ar_ma' ? '3 mois' : 'Mensuel (3m)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('yearly')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                forecastHorizon === 'yearly'
+                  ? 'bg-[#A24824] text-white shadow-xs font-semibold'
+                  : 'text-[#6F6659] dark:text-[#9A9184] hover:text-[#231F1C]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{language === 'ar_ma' ? '12 mois' : 'Annuel (12m)'}</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setShowMethodology(!showMethodology)}
@@ -123,7 +165,7 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
               }`}
             >
               <LineChart className="w-3.5 h-3.5" />
-              <span>{language === 'ar_ma' ? 'Courbe' : 'Courbe & Corridor'}</span>
+              <span>{language === 'ar_ma' ? 'Courbe' : 'Courbe'}</span>
             </button>
             <button
               type="button"
@@ -135,7 +177,7 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
               }`}
             >
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>{language === 'ar_ma' ? 'Catégories' : 'Postes Budgétaires'}</span>
+              <span>{language === 'ar_ma' ? 'Postes' : 'Postes'}</span>
             </button>
           </div>
         </div>
@@ -278,14 +320,24 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
 
       {/* 4 Executive Forecast KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Metric 1: Total 3-Month Projected Expense */}
+        {/* Metric 1: Total Projected Expense (3m or 12m) */}
         <div className="bg-white dark:bg-[#1C1B17] rounded-xl border border-[#E7E2D6] dark:border-[#2F2C26] p-4.5 shadow-xs">
           <span className="text-[10.5px] uppercase font-bold tracking-wider text-[#8A8174] dark:text-[#9A9184] block mb-1">
-            {language === 'ar_ma' ? 'Majmou3 l-masrouf (3 chhor)' : 'Dépenses Prévues (3 Mois)'}
+            {forecastHorizon === 'yearly'
+              ? language === 'ar_ma'
+                ? 'Majmou3 l-masrouf (12 ch-har)'
+                : 'Dépenses Prévues (12 Mois / An)'
+              : language === 'ar_ma'
+              ? 'Majmou3 l-masrouf (3 chhor)'
+              : 'Dépenses Prévues (3 Mois)'}
           </span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-[1.75rem] font-serif font-bold text-[#231F1C] dark:text-[#F2EFEA] tracking-tight">
-              {Math.round(forecast.projectedThreeMonthExpenseTotal).toLocaleString('fr-FR')}{' '}
+              {Math.round(
+                forecastHorizon === 'yearly'
+                  ? forecast.projectedYearlyExpenseTotal
+                  : forecast.projectedThreeMonthExpenseTotal
+              ).toLocaleString('fr-FR')}{' '}
               <span className="text-sm font-sans font-normal text-[#8A8174]">{currencySymbol}</span>
             </span>
           </div>
@@ -307,7 +359,13 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
         {/* Metric 2: Monthly Projected Average vs Allocated Budget */}
         <div className="bg-white dark:bg-[#1C1B17] rounded-xl border border-[#E7E2D6] dark:border-[#2F2C26] p-4.5 shadow-xs">
           <span className="text-[10.5px] uppercase font-bold tracking-wider text-[#8A8174] dark:text-[#9A9184] block mb-1">
-            {language === 'ar_ma' ? 'Moyenne d ch-har l-jay' : 'Moyenne Mensuelle Prévue'}
+            {forecastHorizon === 'yearly'
+              ? language === 'ar_ma'
+                ? 'Moyenne sanawiya f ch-har'
+                : 'Moyenne Mensuelle Lissée'
+              : language === 'ar_ma'
+              ? 'Moyenne d ch-har l-jay'
+              : 'Moyenne Mensuelle Prévue'}
           </span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-[1.75rem] font-serif font-bold text-[#231F1C] dark:text-[#F2EFEA] tracking-tight">
@@ -333,16 +391,28 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
         {/* Metric 3: Total Projected Savings */}
         <div className="bg-white dark:bg-[#1C1B17] rounded-xl border border-[#E7E2D6] dark:border-[#2F2C26] p-4.5 shadow-xs">
           <span className="text-[10.5px] uppercase font-bold tracking-wider text-[#8A8174] dark:text-[#9A9184] block mb-1">
-            {language === 'ar_ma' ? 'Épargne l-motawaqa3a (3 chhor)' : 'Épargne Projetée (3 Mois)'}
+            {forecastHorizon === 'yearly'
+              ? language === 'ar_ma'
+                ? 'Épargne l-motawaqa3a (12 ch-har)'
+                : 'Épargne Projetée (12 Mois / An)'
+              : language === 'ar_ma'
+              ? 'Épargne l-motawaqa3a (3 chhor)'
+              : 'Épargne Projetée (3 Mois)'}
           </span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-[1.75rem] font-serif font-bold text-[#3B6B55] dark:text-[#7D9D8B] tracking-tight">
-              +{Math.round(forecast.projectedThreeMonthSavingsTotal).toLocaleString('fr-FR')}{' '}
+              +{Math.round(
+                forecastHorizon === 'yearly'
+                  ? forecast.projectedYearlySavingsTotal
+                  : forecast.projectedThreeMonthSavingsTotal
+              ).toLocaleString('fr-FR')}{' '}
               <span className="text-sm font-sans font-normal text-[#8A8174]">{currencySymbol}</span>
             </span>
           </div>
           <div className="mt-2 text-[11px] text-[#71685B] dark:text-[#A09789]">
-            Excédent de trésorerie net accumulé estimé
+            {forecastHorizon === 'yearly'
+              ? 'Accumulation annuelle estimée'
+              : 'Excédent net accumulé estimé'}
           </div>
         </div>
 
@@ -384,7 +454,7 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
       {/* Main Interactive Chart or Category Breakdown Section */}
       {activeView === 'chart' ? (
         <PredictiveForecastChart
-          timeline={forecast.timelineMonths}
+          timeline={forecastHorizon === 'yearly' ? forecast.yearlyTimelineMonths : forecast.timelineMonths}
           allocatedBudgetCap={forecast.allocatedMonthlyBudgetCap}
           currency={currency}
           language={language}
@@ -394,6 +464,7 @@ export const Section05BudgetForecast: React.FC<Section05BudgetForecastProps> = (
           categoryForecasts={forecast.categoryForecasts}
           currency={currency}
           language={language}
+          isYearly={forecastHorizon === 'yearly'}
         />
       )}
 

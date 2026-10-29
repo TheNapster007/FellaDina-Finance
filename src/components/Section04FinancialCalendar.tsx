@@ -26,7 +26,6 @@ interface Section04FinancialCalendarProps {
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   onOpenPdfModal?: (monthKey?: string) => void;
-  isDemoMode?: boolean;
 }
 
 export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProps> = ({
@@ -38,7 +37,6 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
   onEditTransaction,
   onDeleteTransaction,
   onOpenPdfModal,
-  isDemoMode = false,
 }) => {
   // Current calendar view month defaults to today
   const today = new Date();
@@ -368,7 +366,8 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
                 key={index}
                 className="text-center font-semibold text-[11px] uppercase tracking-wider text-[#7A7163] dark:text-[#9A9184] py-1"
               >
-                {d}
+                <span className="hidden sm:inline">{d}</span>
+                <span className="sm:hidden">{d.charAt(0)}</span>
               </div>
             ))}
           </div>
@@ -506,18 +505,12 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
               {/* Add transaction pre-filled with this date */}
               <button
                 onClick={() => onOpenAddModalWithDate(selectedDate)}
-                title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Fte7 7ssab bach t-zid masrouf' : 'Mode Démo : Créez un compte pour ajouter une opération') : undefined}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0 group"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
               >
-                {isDemoMode ? <Lock className="w-3.5 h-3.5 text-white/80" /> : <Plus className="w-3.5 h-3.5" />}
+                <Plus className="w-3.5 h-3.5" />
                 <span>
                   {language === 'ar_ma' ? '+ Zid f had nhar' : '+ Ajouter sur ce jour'}
                 </span>
-                {isDemoMode && (
-                  <span className="text-[10px] font-medium bg-black/25 text-white/90 px-1.5 py-0.2 rounded">
-                    Démo
-                  </span>
-                )}
               </button>
             </div>
           </div>
@@ -626,14 +619,14 @@ export const Section04FinancialCalendar: React.FC<Section04FinancialCalendarProp
                         <button
                           onClick={() => onEditTransaction(tx)}
                           className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#A24824] dark:hover:text-[#E8734C] hover:bg-[#F0ECE1] dark:hover:bg-[#2C2923] rounded transition-colors"
-                          title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Dkhol b 7ssab bach t-beddel' : 'Mode Démo : Connectez-vous pour modifier') : 'Modifier'}
+                          title="Modifier"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteTransaction(tx.id)}
                           className="p-1 text-[#786E61] dark:text-[#A69E91] hover:text-[#B91C1C] dark:hover:text-[#F87171] hover:bg-[#FEE2E2] dark:hover:bg-[#3D1E16] rounded transition-colors"
-                          title={isDemoMode ? (language === 'ar_ma' ? 'Mode Démo : Dkhol b 7ssab bach t-mssa7' : 'Mode Démo : Connectez-vous pour supprimer') : 'Supprimer'}
+                          title="Supprimer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

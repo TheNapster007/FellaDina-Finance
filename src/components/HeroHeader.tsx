@@ -89,24 +89,22 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
               Espace actif : <strong>{currentUser.name}</strong> · Calculs personnalisés
             </span>
           </div>
-        ) : (
+        ) : onOpenSignUp ? (
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F2EB] dark:bg-[#201F1B] border border-[#DDD6C8] dark:border-[#38342D] rounded-full text-xs text-[#7A7163] dark:text-[#A79E90] font-medium shadow-2xs">
-              <Lock className="w-3.5 h-3.5 text-[#A24824]" />
-              <span>{language === 'ar_ma' ? 'Mode Démo (Lecture Seule)' : 'Mode Démo · Lecture Seule'}</span>
-            </div>
-            {onOpenSignUp && (
-              <button
-                onClick={onOpenSignUp}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FAF4F0] dark:bg-[#2A211D] hover:bg-[#F4E6DE] dark:hover:bg-[#342721] border border-[#E4D1C5] dark:border-[#4B2F23] rounded-full text-xs text-[#A24824] dark:text-[#E8734C] font-semibold transition-all shadow-2xs"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Calculer avec mes propres revenus & dépenses</span>
-                <ArrowRight className="w-3 h-3 ml-0.5" />
-              </button>
-            )}
+            <button
+              onClick={onOpenSignUp}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#FAF4F0] dark:bg-[#2A211D] hover:bg-[#F4E6DE] dark:hover:bg-[#342721] border border-[#E4D1C5] dark:border-[#4B2F23] rounded-full text-xs text-[#A24824] dark:text-[#E8734C] font-semibold transition-all shadow-2xs cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>
+                {language === 'ar_ma'
+                  ? 'Fte7 7ssab bach t-bda t-hisab b floussak'
+                  : 'Créer un compte pour gérer vos transactions'}
+              </span>
+              <ArrowRight className="w-3 h-3 ml-0.5" />
+            </button>
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );

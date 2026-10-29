@@ -55,18 +55,27 @@ export const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
     );
   }
 
-  const totalIncomes = currentUser.incomes.reduce((sum, i) => sum + i.amount, 0);
-  const totalExpenses = currentUser.expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalIncomes = currentUser.incomes ? currentUser.incomes.reduce((sum, i) => sum + i.amount, 0) : 0;
+  const totalExpenses = currentUser.expenses ? currentUser.expenses.reduce((sum, e) => sum + e.amount, 0) : 0;
+  const initialBalance = currentUser.initialBalance || 0;
 
   return (
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF6F0] dark:hover:bg-[#2A2621] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg transition-colors text-xs font-medium text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs"
+        className="flex items-center gap-2 px-2.5 py-1.5 bg-white dark:bg-[#22201C] hover:bg-[#FAF6F0] dark:hover:bg-[#2A2621] border border-[#DCD5C6] dark:border-[#38342D] rounded-lg transition-colors text-xs font-medium text-[#2B2621] dark:text-[#F5F2EB] shadow-2xs cursor-pointer"
       >
-        <div className="w-5 h-5 rounded-full bg-[#A24824] text-white flex items-center justify-center text-[10px] font-bold">
-          {currentUser.name.charAt(0).toUpperCase()}
-        </div>
+        {currentUser.avatarUrl ? (
+          <img
+            src={currentUser.avatarUrl}
+            alt={currentUser.name}
+            className="w-5 h-5 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-5 h-5 rounded-full bg-[#A24824] text-white flex items-center justify-center text-[10px] font-bold">
+            {currentUser.name.charAt(0).toUpperCase()}
+          </div>
+        )}
         <span className="font-semibold max-w-[100px] sm:max-w-[130px] truncate">
           {currentUser.name}
         </span>
@@ -77,9 +86,17 @@ export const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
         <div className="absolute right-0 mt-2 w-72 bg-[#FAF8F5] dark:bg-[#1E1C18] border border-[#E3DDD1] dark:border-[#38332A] rounded-xl shadow-xl z-50 p-3 animate-fade-in text-xs">
           {/* Header */}
           <div className="flex items-center gap-3 pb-3 border-b border-[#E7E2D6] dark:border-[#2E2B25]">
-            <div className="w-10 h-10 rounded-xl bg-[#A24824] text-white flex items-center justify-center text-sm font-bold shadow-xs">
-              {currentUser.name.charAt(0).toUpperCase()}
-            </div>
+            {currentUser.avatarUrl ? (
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.name}
+                className="w-10 h-10 rounded-xl object-cover shadow-xs border border-[#E5DFD4] dark:border-[#332E27]"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[#A24824] text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="overflow-hidden">
               <span className="font-bold text-sm text-[#2B2621] dark:text-[#F5F2EB] block truncate">
                 {currentUser.name}
@@ -88,7 +105,7 @@ export const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
                 {currentUser.email}
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3B6B55] dark:text-[#529E7D] mt-0.5">
-                <Shield className="w-3 h-3" /> Données calculées en direct
+                <Shield className="w-3 h-3" /> Synchronisé Firebase & Google
               </span>
             </div>
           </div>
@@ -100,7 +117,7 @@ export const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
                 <Wallet className="w-3 h-3 text-[#A24824]" /> Réserve de départ:
               </span>
               <span className="font-bold text-[#2B2621] dark:text-[#F5F2EB]">
-                {currentUser.initialBalance.toLocaleString('fr-FR')} {currency}
+                {initialBalance.toLocaleString('fr-FR')} {currency}
               </span>
             </div>
             <div className="flex items-center justify-between text-[11px]">

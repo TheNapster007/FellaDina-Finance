@@ -36,7 +36,6 @@ interface Section06SavingsGoalsProps {
   onOpenAllocateSurplusModal: (goal: SavingsGoal) => void;
   onDeleteGoal: (goalId: string) => void;
   onQuickAllocate: (goalId: string, amount: number) => void;
-  isDemoMode?: boolean;
 }
 
 export const Section06SavingsGoals: React.FC<Section06SavingsGoalsProps> = ({
@@ -50,7 +49,6 @@ export const Section06SavingsGoals: React.FC<Section06SavingsGoalsProps> = ({
   onOpenAllocateSurplusModal,
   onDeleteGoal,
   onQuickAllocate,
-  isDemoMode = false,
 }) => {
   const [filterPriority, setFilterPriority] = useState<'all' | 'high' | 'active' | 'completed'>('all');
   const [showSimulator, setShowSimulator] = useState(false);
@@ -161,10 +159,9 @@ export const Section06SavingsGoals: React.FC<Section06SavingsGoalsProps> = ({
 
           <button
             onClick={onOpenAddGoalModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-            title={isDemoMode ? "Mode Démo : Compte requis pour créer un objectif" : "Créer un objectif"}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
           >
-            {isDemoMode ? <Lock className="w-3.5 h-3.5 opacity-90" /> : <Plus className="w-3.5 h-3.5" />}
+            <Plus className="w-3.5 h-3.5" />
             <span>{language === 'ar_ma' ? '+ Zid Hadaf' : '+ Nouvel Objectif'}</span>
           </button>
         </div>
@@ -452,15 +449,15 @@ export const Section06SavingsGoals: React.FC<Section06SavingsGoalsProps> = ({
                       {/* Edit & Delete Buttons */}
                       <button
                         onClick={() => onOpenEditGoalModal(goal)}
-                        className="p-1 text-[#8C8375] hover:text-[#A24824] dark:hover:text-[#E8734C] transition-colors rounded"
-                        title={isDemoMode ? 'Mode Démo : Connectez-vous pour modifier un objectif' : 'Modifier ce projet'}
+                        className="p-1 text-[#8C8375] hover:text-[#A24824] dark:hover:text-[#E8734C] transition-colors rounded cursor-pointer"
+                        title="Modifier ce projet"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => onDeleteGoal(goal.id)}
-                        className="p-1 text-[#8C8375] hover:text-[#DC2626] dark:hover:text-[#EF4444] transition-colors rounded"
-                        title={isDemoMode ? 'Mode Démo : Connectez-vous pour supprimer un objectif' : 'Supprimer cet objectif'}
+                        className="p-1 text-[#8C8375] hover:text-[#DC2626] dark:hover:text-[#EF4444] transition-colors rounded cursor-pointer"
+                        title="Supprimer cet objectif"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

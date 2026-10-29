@@ -147,22 +147,11 @@ export const TopNav: React.FC<TopNavProps> = ({
 
             <button
               onClick={onOpenAddModal}
-              title={
-                !currentUser
-                  ? language === 'ar_ma'
-                    ? 'Mode Démo : Inscription requise pour ajouter une transaction'
-                    : 'Mode Démo : Inscription requise pour ajouter une transaction'
-                  : undefined
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              title={language === 'ar_ma' ? '+ Zid transaction' : 'Ajouter une transaction'}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
             >
-              {!currentUser ? <Lock className="w-3.5 h-3.5 opacity-90" /> : <Plus className="w-4 h-4" />}
+              <Plus className="w-4 h-4" />
               <span>{language === 'ar_ma' ? '+ Zid' : 'Ajouter'}</span>
-              {!currentUser && (
-                <span className="hidden sm:inline text-[9px] px-1 py-0.2 bg-black/20 rounded font-mono uppercase tracking-wider">
-                  Démo
-                </span>
-              )}
             </button>
           </div>
         </div>
@@ -344,11 +333,11 @@ export const TopNav: React.FC<TopNavProps> = ({
             <span className="hidden md:inline">{language === 'ar_ma' ? 'Épargne' : 'Épargne'}</span>
           </button>
 
-          {/* Reset / Reload Demo Data */}
+          {/* Reset Data Button */}
           <button
             onClick={onResetData}
-            title="Réinitialiser les données de démonstration"
-            className="p-1.5 bg-white dark:bg-[#22201C] hover:bg-[#F3EFE7] dark:hover:bg-[#2C2924] border border-[#DCD5C6] dark:border-[#38342D] text-[#6F6659] dark:text-[#A8A092] hover:text-[#2B2621] dark:hover:text-[#F2EFEA] rounded-lg transition-colors"
+            title={language === 'ar_ma' ? 'I3adat ta3yin l-mizaniya' : 'Réinitialiser toutes les opérations'}
+            className="p-1.5 bg-white dark:bg-[#22201C] hover:bg-[#F3EFE7] dark:hover:bg-[#2C2924] border border-[#DCD5C6] dark:border-[#38342D] text-[#6F6659] dark:text-[#A8A092] hover:text-[#2B2621] dark:hover:text-[#F2EFEA] rounded-lg transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -367,14 +356,9 @@ export const TopNav: React.FC<TopNavProps> = ({
           {/* Desktop Primary CTA */}
           <button
             onClick={onOpenAddModal}
-            title={!currentUser ? (language === 'ar_ma' ? 'Démo: Dkhol b 7ssab bach t-zid transaction' : 'Mode Démo : Créez un compte pour ajouter des opérations') : undefined}
-            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow group"
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A24824] hover:bg-[#8F3E1E] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow cursor-pointer"
           >
-            {!currentUser ? (
-              <Lock className="w-3.5 h-3.5 text-white/80 group-hover:text-white" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
+            <Plus className="w-4 h-4" />
             <span>
               {language === 'ar_ma'
                 ? '+ Zid Flous / Masrouf'
@@ -382,11 +366,6 @@ export const TopNav: React.FC<TopNavProps> = ({
                 ? '+ New Entry'
                 : '+ Nouvelle Transaction'}
             </span>
-            {!currentUser && (
-              <span className="ml-0.5 text-[10px] font-medium bg-black/25 text-white/90 px-1.5 py-0.5 rounded leading-none">
-                Démo
-              </span>
-            )}
           </button>
         </div>
       </div>

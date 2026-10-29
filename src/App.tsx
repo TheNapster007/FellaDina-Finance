@@ -18,12 +18,27 @@ import { CategoryDetailModal } from './components/CategoryDetailModal';
 import { ExportModal } from './components/ExportModal';
 import { PdfReportModal } from './components/PdfReportModal';
 import { AuthModal } from './components/AuthModal';
-import { DemoRestrictedModal } from './components/DemoRestrictedModal';
 import { SavingsGoalModal } from './components/SavingsGoalModal';
 import { FooterNotes } from './components/FooterNotes';
 import { ToastContainer } from './components/ToastContainer';
-import { buildUserCategories, generateUserTransactions } from './utils/userBudgetGenerator';
+import { buildUserCategories } from './utils/userBudgetGenerator';
 import { Lock, Sparkles } from 'lucide-react';
+import {
+  auth,
+  onAuthStateChanged,
+  logOutFirebase,
+  mapFirebaseUserToProfile,
+  subscribeToTransactions,
+  saveTransactionToFirestore,
+  deleteTransactionFromFirestore,
+  subscribeToCategories,
+  saveCategoryToFirestore,
+  deleteCategoryFromFirestore,
+  subscribeToSavingsGoals,
+  saveSavingsGoalToFirestore,
+  deleteSavingsGoalFromFirestore,
+  saveUserProfileToFirestore,
+} from './lib/firebase';
 
 export default function App() {
   // Theme state: dark | light with persistence
@@ -122,6 +137,74 @@ export default function App() {
     return null;
   });
 
+  // Listen to Firebase Authentication state (Google Sign-In & persistent sessions)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        const profile = mapFirebaseUserToProfile(fbUser);
+        setCurrentUser((prev) => {
+          if (!prev || prev.id !== fbUser.uid) {
+            try {
+              localStorage.setItem('felladina_active_user', JSON.stringify(profile));
+            } catch {
+              // ignore
+            }
+            return profile;
+          }
+          return prev;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time synchronization with Firestore under /users/{userId}/*
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const userId = currentUser.id;
+
+    // 1. Transactions sync
+    const unsubTx = subscribeToTransactions(userId, (remoteTxs) => {
+      setTransactions(remoteTxs);
+      try {
+        localStorage.setItem(`felladina_tx_${userId}`, JSON.stringify(remoteTxs));
+        localStorage.setItem('felladina_transactions', JSON.stringify(remoteTxs));
+      } catch {
+        // ignore
+      }
+    });
+
+    // 2. Categories sync
+    const unsubCats = subscribeToCategories(userId, (remoteCats) => {
+      if (remoteCats && remoteCats.length > 0) {
+        setCategories(remoteCats);
+        try {
+          localStorage.setItem(`felladina_cat_${userId}`, JSON.stringify(remoteCats));
+          localStorage.setItem('felladina_categories', JSON.stringify(remoteCats));
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    // 3. Savings goals sync
+    const unsubGoals = subscribeToSavingsGoals(userId, (remoteGoals) => {
+      setSavingsGoals(remoteGoals);
+      try {
+        localStorage.setItem(`felladina_savings_goals_${userId}`, JSON.stringify(remoteGoals));
+        localStorage.setItem('felladina_savings_goals', JSON.stringify(remoteGoals));
+      } catch {
+        // ignore
+      }
+    });
+
+    return () => {
+      unsubTx();
+      unsubCats();
+      unsubGoals();
+    };
+  }, [currentUser?.id]);
+
   // Modal States
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -160,14 +243,17 @@ export default function App() {
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [goalModalMode, setGoalModalMode] = useState<'create' | 'edit' | 'allocate'>('create');
 
-  // Demo Mode Restrictions & Interceptor State
-  const [isDemoRestrictedModalOpen, setIsDemoRestrictedModalOpen] = useState(false);
-  const [demoRestrictedAction, setDemoRestrictedAction] = useState<'add' | 'edit' | 'delete' | 'category' | 'goal' | 'general'>('general');
-
-  const requireUserAuth = (action: 'add' | 'edit' | 'delete' | 'category' | 'goal' | 'general'): boolean => {
+  const requireUserAuth = (_action?: 'add' | 'edit' | 'delete' | 'category' | 'goal' | 'general'): boolean => {
     if (!currentUser) {
-      setDemoRestrictedAction(action);
-      setIsDemoRestrictedModalOpen(true);
+      setIsAuthModalOpen(true);
+      addToast({
+        type: 'info',
+        title: 'Compte requis',
+        titleDarija: 'Khassk 7ssab bach tkemmel',
+        message: 'Créez un compte ou connectez-vous pour ajouter, modifier ou supprimer des opérations financières.',
+        messageDarija: 'Sjjel 7ssab jdid bach t-zid aw t-beddel l-masarif w l-madakhil.',
+        durationMs: 4000,
+      });
       return false;
     }
     return true;
@@ -262,6 +348,9 @@ export default function App() {
   const handleAddCategory = (newCat: CategoryBudget) => {
     if (!requireUserAuth('category')) return;
     setCategories((prev) => [...prev, newCat]);
+    if (currentUser?.id) {
+      saveCategoryToFirestore(currentUser.id, newCat).catch(console.error);
+    }
     addToast({
       type: 'success',
       title: 'Catégorie créée avec succès',
@@ -275,6 +364,9 @@ export default function App() {
   const handleUpdateCategory = (updatedCat: CategoryBudget) => {
     if (!requireUserAuth('category')) return;
     setCategories((prev) => prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)));
+    if (currentUser?.id) {
+      saveCategoryToFirestore(currentUser.id, updatedCat).catch(console.error);
+    }
     addToast({
       type: 'info',
       title: 'Plafond mis à jour',
@@ -289,6 +381,9 @@ export default function App() {
     if (!requireUserAuth('category')) return;
     const cat = categories.find((c) => c.id === catId);
     setCategories((prev) => prev.filter((c) => c.id !== catId));
+    if (currentUser?.id) {
+      deleteCategoryFromFirestore(currentUser.id, catId).catch(console.error);
+    }
     if (selectedCategory === catId) {
       setSelectedCategory('all');
     }
@@ -383,6 +478,9 @@ export default function App() {
     const isEdit = savingsGoals.some((g) => g.id === goalToSave.id);
     if (isEdit) {
       setSavingsGoals((prev) => prev.map((g) => (g.id === goalToSave.id ? goalToSave : g)));
+      if (currentUser?.id) {
+        saveSavingsGoalToFirestore(currentUser.id, goalToSave).catch(console.error);
+      }
       addToast({
         type: 'info',
         title: 'Objectif d’épargne mis à jour',
@@ -393,6 +491,9 @@ export default function App() {
       });
     } else {
       setSavingsGoals((prev) => [goalToSave, ...prev]);
+      if (currentUser?.id) {
+        saveSavingsGoalToFirestore(currentUser.id, goalToSave).catch(console.error);
+      }
       addToast({
         type: 'success',
         title: 'Nouvel objectif créé',
@@ -408,6 +509,9 @@ export default function App() {
     if (!requireUserAuth('goal')) return;
     const goal = savingsGoals.find((g) => g.id === goalId);
     setSavingsGoals((prev) => prev.filter((g) => g.id !== goalId));
+    if (currentUser?.id) {
+      deleteSavingsGoalFromFirestore(currentUser.id, goalId).catch(console.error);
+    }
     if (goal) {
       addToast({
         type: 'info',
@@ -427,10 +531,14 @@ export default function App() {
 
     const newAmount = goal.currentAmount + amount;
     const newProgress = Math.min(100, Math.round((newAmount / goal.targetAmount) * 100));
+    const updatedGoal = { ...goal, currentAmount: newAmount };
 
     setSavingsGoals((prev) =>
-      prev.map((g) => (g.id === goalId ? { ...g, currentAmount: newAmount } : g))
+      prev.map((g) => (g.id === goalId ? updatedGoal : g))
     );
+    if (currentUser?.id) {
+      saveSavingsGoalToFirestore(currentUser.id, updatedGoal).catch(console.error);
+    }
 
     addToast({
       type: 'success',
@@ -461,6 +569,11 @@ export default function App() {
     setTransactions(userTransactions);
     setSelectedCategory('all');
 
+    if (profile.id) {
+      saveUserProfileToFirestore(profile.id, profile).catch(console.error);
+      userCategories.forEach((cat: CategoryBudget) => saveCategoryToFirestore(profile.id, cat).catch(console.error));
+    }
+
     try {
       localStorage.setItem('felladina_users', JSON.stringify(updatedProfiles));
       localStorage.setItem('felladina_active_user', JSON.stringify(profile));
@@ -475,8 +588,8 @@ export default function App() {
       type: 'success',
       title: `Bienvenue, ${profile.name} !`,
       titleDarija: `Marhba bik, ${profile.name} !`,
-      message: `Votre espace financier personnel est prêt et vierge. Vous pouvez dès à présent enregistrer vos rentrées et dépenses quotidiennes.`,
-      messageDarija: `L-mizaniya dyalek wajda. Bda ddkhel l-masarif w l-madkhoul dyalek.`,
+      message: `Votre espace financier personnel est prêt et synchronisé avec Firebase. Vous pouvez dès à présent enregistrer vos rentrées et dépenses quotidiennes.`,
+      messageDarija: `L-mizaniya dyalek wajda w m-syncronisa. Bda ddkhel l-masarif w l-madkhoul dyalek.`,
       durationMs: 6500,
     });
   };
@@ -485,6 +598,10 @@ export default function App() {
   const handleLoginSuccess = (profile: UserProfile) => {
     setCurrentUser(profile);
     setCurrency(profile.currency);
+
+    if (profile.id) {
+      saveUserProfileToFirestore(profile.id, profile).catch(console.error);
+    }
 
     try {
       localStorage.setItem('felladina_active_user', JSON.stringify(profile));
@@ -515,14 +632,19 @@ export default function App() {
       type: 'info',
       title: `Session chargée : ${profile.name}`,
       titleDarija: `Marhba b rjou3ek, ${profile.name}`,
-      message: `Votre tableau de bord a été actualisé avec vos opérations enregistrées.`,
-      messageDarija: `L-ma3loumat d l-7ssab dyalek t-charjaw b nja7.`,
+      message: `Votre tableau de bord a été actualisé et synchronisé avec Firebase.`,
+      messageDarija: `L-ma3loumat d l-7ssab dyalek t-charjaw b nja7 mn Firebase.`,
       durationMs: 4000,
     });
   };
 
   // Logout / Switch User handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logOutFirebase();
+    } catch (err) {
+      console.error('Firebase sign out error:', err);
+    }
     setCurrentUser(null);
     try {
       localStorage.removeItem('felladina_active_user');
@@ -609,16 +731,23 @@ export default function App() {
     editId?: string
   ) => {
     if (!requireUserAuth(editId ? 'edit' : 'add')) return;
+    const finalTx: Transaction = editId
+      ? { ...txData, id: editId }
+      : {
+          ...txData,
+          id: `tx-${Date.now()}`,
+        };
+
     if (editId) {
       setTransactions((prev) =>
-        prev.map((t) => (t.id === editId ? { ...txData, id: editId } : t))
+        prev.map((t) => (t.id === editId ? finalTx : t))
       );
     } else {
-      const newTx: Transaction = {
-        ...txData,
-        id: `tx-${Date.now()}`,
-      };
-      setTransactions((prev) => [newTx, ...prev]);
+      setTransactions((prev) => [finalTx, ...prev]);
+    }
+
+    if (currentUser?.id) {
+      saveTransactionToFirestore(currentUser.id, finalTx).catch(console.error);
     }
 
     // Budget threshold check for expenses
@@ -708,6 +837,9 @@ export default function App() {
     if (!requireUserAuth('delete')) return;
     const tx = transactions.find((t) => t.id === id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    if (currentUser?.id) {
+      deleteTransactionFromFirestore(currentUser.id, id).catch(console.error);
+    }
     if (tx) {
       addToast({
         type: 'info',
@@ -762,33 +894,28 @@ export default function App() {
           onOpenSignUp={() => setIsAuthModalOpen(true)}
         />
 
-        {/* Demo Mode Notice Banner for Unauthenticated Visitors */}
+        {/* Welcome Onboarding Banner for Visitors */}
         {!currentUser && (
           <div className="mb-6 rounded-xl border border-[#E5DAC8] dark:border-[#383025] bg-gradient-to-r from-[#FAF6EE] via-[#FDFBF7] to-[#F5ECE5] dark:from-[#211D18] dark:via-[#1D1B17] dark:to-[#261E1A] p-4 sm:p-5 shadow-xs transition-colors">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
                 <div className="w-9 h-9 rounded-lg bg-[#A24824]/10 dark:bg-[#A24824]/20 flex items-center justify-center shrink-0 mt-0.5 text-[#A24824] dark:text-[#E8734C]">
-                  <Lock className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-[#2C2722] dark:text-[#F2EFEA]">
-                      {language === 'ar_ma'
-                        ? 'Mode Démonstration · Consultation en lecture seule'
-                        : language === 'en'
-                        ? 'Demo Mode · Read-only preview'
-                        : 'Mode Démonstration · Consultation en lecture seule'}
-                    </h3>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#A24824]/10 dark:bg-[#A24824]/20 text-[#A24824] dark:text-[#E8734C]">
-                      {language === 'ar_ma' ? 'Démo' : 'Demo'}
-                    </span>
-                  </div>
+                  <h3 className="text-sm font-semibold text-[#2C2722] dark:text-[#F2EFEA]">
+                    {language === 'ar_ma'
+                      ? 'Marhba bik f Felladina Finance · Bda hisab l-flous dyalek'
+                      : language === 'en'
+                      ? 'Welcome to Felladina Finance · Track your personal cash flow'
+                      : 'Bienvenue sur Felladina Finance · Votre gestion financière sur-mesure'}
+                  </h3>
                   <p className="mt-1 text-xs text-[#6A6154] dark:text-[#B6AEA3] leading-relaxed max-w-2xl">
                     {language === 'ar_ma'
-                      ? 'Nta daba kat-chof l-ma3loumat d démo. Bach t-bda t-zid aw t-mssa7 l-masarif w l-madkhoul dyalek w thseb 3la 7ssabak, khassk t-fte7 7ssab jdid.'
+                      ? 'Sjjel 7ssab f tawani bach tbda ddkhel l-madakhil w l-masarif yawmiyan, w tchof tawaqo3at l-mizaniya dyalek b tariqa deqiqqa.'
                       : language === 'en'
-                      ? 'You are exploring live demo data. To add, edit, or delete transactions and track your personal finances, please create an account.'
-                      : 'Vous explorez actuellement les données de démonstration. L’ajout, la modification et la suppression d’opérations sont réservés aux comptes connectés.'}
+                      ? 'Create an account to start logging your daily incomes and expenses, and track intelligent budget forecasts based on your entries.'
+                      : 'Créez votre compte en quelques instants pour commencer à enregistrer vos dépenses et rentrées quotidiennes et bénéficier de calculs et projections personnalisés.'}
                   </p>
                 </div>
               </div>
@@ -869,7 +996,6 @@ export default function App() {
           onOpenSubCategoryManager={handleOpenSubCategoryManager}
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={handleDeleteTransaction}
-          isDemoMode={!currentUser}
         />
 
         {/* Section 04: Interactive Financial Calendar & Cash Flow Chronology */}
@@ -882,7 +1008,6 @@ export default function App() {
           onEditTransaction={handleEditTransaction}
           onDeleteTransaction={handleDeleteTransaction}
           onOpenPdfModal={(monthKey) => handleOpenPdfModal(monthKey)}
-          isDemoMode={!currentUser}
         />
 
         {/* Section 05: Predictive Budget Forecast & 3-Month Projection */}
@@ -905,7 +1030,6 @@ export default function App() {
           onOpenAllocateSurplusModal={handleOpenAllocateSurplus}
           onDeleteGoal={handleDeleteGoal}
           onQuickAllocate={handleQuickAllocate}
-          isDemoMode={!currentUser}
         />
 
         {/* Footer notes strip */}
@@ -1043,22 +1167,6 @@ export default function App() {
         mode={goalModalMode}
         monthlySurplus={Math.max(0, netSavings)}
         currency={currency}
-        language={language}
-      />
-
-      {/* Demo Restricted Interceptor Modal for Unauthenticated Users */}
-      <DemoRestrictedModal
-        isOpen={isDemoRestrictedModalOpen}
-        onClose={() => setIsDemoRestrictedModalOpen(false)}
-        onOpenSignUp={() => {
-          setIsDemoRestrictedModalOpen(false);
-          setIsAuthModalOpen(true);
-        }}
-        onOpenSignIn={() => {
-          setIsDemoRestrictedModalOpen(false);
-          setIsAuthModalOpen(true);
-        }}
-        actionAttempted={demoRestrictedAction}
         language={language}
       />
 

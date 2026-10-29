@@ -125,11 +125,15 @@ export interface ForecastReport {
   scenario: ForecastScenario;
   discretionaryAdjustmentPct: number;
   timelineMonths: ForecastTimelineMonth[]; // includes 3 historical + 3 future months
+  yearlyTimelineMonths: ForecastTimelineMonth[]; // includes 12 projected months
   historicalAverageExpense: number;
   projectedAverageExpense: number;
   projectedThreeMonthExpenseTotal: number;
   projectedThreeMonthSavingsTotal: number;
+  projectedYearlyExpenseTotal: number;
+  projectedYearlySavingsTotal: number;
   allocatedMonthlyBudgetCap: number;
+  allocatedYearlyBudgetCap: number;
   fastestGrowingCategory: {
     label: string;
     labelDarija: string;
@@ -161,8 +165,9 @@ export interface UserProfile {
   name: string;
   email: string;
   avatarSeed?: string;
+  avatarUrl?: string;
   currency: Currency;
-  initialBalance: number;
+  initialBalance?: number;
   createdAt: string;
   incomes: UserIncomeSource[];
   expenses: UserExpenseBudgetPlan[];

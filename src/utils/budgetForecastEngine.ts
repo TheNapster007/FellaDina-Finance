@@ -317,6 +317,47 @@ export function computeBudgetForecast({
     .filter((m) => m.isProjection)
     .reduce((s, m) => s + m.projectedSavings, 0);
 
+  // Generate 12 Future Months for Yearly Projection
+  const yearlyTimelineMonths: ForecastTimelineMonth[] = [];
+  const future12MonthKeys = Array.from({ length: 12 }, (_, i) => getNextMonthKey(latestMonthKey, i + 1));
+  let projectedYearlyExpenseTotal = 0;
+  let projectedYearlySavingsTotal = 0;
+
+  future12MonthKeys.forEach((key, stepIndex) => {
+    const step = stepIndex + 1;
+    const projectedExp = Math.max(
+      3000,
+      Math.round(
+        recentWeightExpense +
+        (rawMonthlyTrendSlope * scenarioSlopeMultiplier * Math.min(step, 6)) +
+        scenarioLevelOffset +
+        userSliderOffset
+      )
+    );
+    const corridorExpansion = Math.sqrt(step) * stdDev * 0.9 * confidenceWidthMultiplier;
+    const minExp = Math.max(2500, Math.round(projectedExp - corridorExpansion));
+    const maxExp = Math.round(projectedExp + corridorExpansion);
+    const projIncome = Math.round(avgHistoricalIncome * (1 + (step * 0.003)));
+    const projSavings = projIncome - projectedExp;
+    const monthNames = formatMonthName(key, language);
+
+    yearlyTimelineMonths.push({
+      monthKey: key,
+      label: monthNames.full,
+      shortLabel: monthNames.short,
+      isProjection: true,
+      actualOrExpectedExpense: projectedExp,
+      minExpense: minExp,
+      maxExpense: maxExp,
+      projectedIncome: projIncome,
+      projectedSavings: projSavings,
+      budgetCap: allocatedMonthlyBudgetCap,
+    });
+
+    projectedYearlyExpenseTotal += projectedExp;
+    projectedYearlySavingsTotal += projSavings;
+  });
+
   // First month with budget risk
   const riskMonthObj = timelineMonths.find((m) => m.isProjection && m.actualOrExpectedExpense > allocatedMonthlyBudgetCap);
   const budgetRiskMonth = riskMonthObj ? riskMonthObj.label : null;
@@ -325,11 +366,15 @@ export function computeBudgetForecast({
     scenario,
     discretionaryAdjustmentPct,
     timelineMonths,
+    yearlyTimelineMonths,
     historicalAverageExpense: Math.round(avgHistoricalExpense),
     projectedAverageExpense,
     projectedThreeMonthExpenseTotal,
     projectedThreeMonthSavingsTotal,
+    projectedYearlyExpenseTotal,
+    projectedYearlySavingsTotal,
     allocatedMonthlyBudgetCap,
+    allocatedYearlyBudgetCap: allocatedMonthlyBudgetCap * 12,
     fastestGrowingCategory: fastestGrowing,
     budgetRiskMonth,
     categoryForecasts,

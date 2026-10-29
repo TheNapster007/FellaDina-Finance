@@ -25,8 +25,14 @@ import {
   Mail,
   User,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Loader2,
 } from 'lucide-react';
+import {
+  signInWithGoogle,
+  mapFirebaseUserToProfile,
+  saveUserProfileToFirestore,
+} from '../lib/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -52,6 +58,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
+  // Google Firebase Auth State
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
   // Form step 1: Identity & Credentials
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -59,6 +69,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currentCurrency || 'MAD');
   const [initialBalance, setInitialBalance] = useState<number>(15000);
+
+  // Google 1-Click Sign-In with Gmail
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setGoogleError(null);
+    try {
+      const fbUser = await signInWithGoogle();
+      const profile = mapFirebaseUserToProfile(fbUser);
+      profile.currency = selectedCurrency;
+      // Persist to Firestore
+      await saveUserProfileToFirestore(fbUser.uid, profile);
+      onLoginSuccess(profile);
+      onClose();
+    } catch (err: any) {
+      console.error('Google Sign-In failed:', err);
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setGoogleError(
+          language === 'ar_ma'
+            ? 'Ma qdrnach ndkhel b Google. 3awed jarreb.'
+            : 'Échec de la connexion avec votre compte Google / Gmail. Veuillez réessayer.'
+        );
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   // Form step 2: Incomes
   const [incomes, setIncomes] = useState<UserIncomeSource[]>([
@@ -351,6 +387,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* STEP 1: Identification & Core Preferences */}
               {step === 1 && (
                 <div className="space-y-4 animate-fade-in">
+                  {/* Google 1-Click Connection */}
+                  <div className="p-4 bg-white dark:bg-[#25221C] rounded-xl border border-[#DFD8C9] dark:border-[#38332A] space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={isGoogleLoading}
+                      className="w-full py-2.5 px-4 bg-white dark:bg-[#1E1C18] hover:bg-[#F9F7F2] dark:hover:bg-[#2C2822] text-[#2B2621] dark:text-[#F2EFEA] border border-[#D5CDBE] dark:border-[#423C32] rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-xs hover:shadow transition-all cursor-pointer"
+                    >
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
+                      <span>
+                        {isGoogleLoading
+                          ? 'Connexion Google en cours...'
+                          : language === 'ar_ma'
+                          ? 'Dkhol b compte Google / Gmail'
+                          : 'Continuer avec Google (Compte Gmail)'}
+                      </span>
+                    </button>
+                    {googleError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                        {googleError}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between text-[11px] text-[#7A7164] dark:text-[#9A9182]">
+                      <span>Authentification Firebase sécurisée</span>
+                      <span className="font-mono text-[#3B6B55] dark:text-[#4AA37B]">1-Clic instantané</span>
+                    </div>
+                  </div>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-[#E7E2D6] dark:border-[#38332A]" />
+                    <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-[#8C8275] dark:text-[#887F72]">
+                      {language === 'ar_ma' ? 'Aw sjel manuel' : 'Ou inscription manuelle'}
+                    </span>
+                    <div className="flex-grow border-t border-[#E7E2D6] dark:border-[#38332A]" />
+                  </div>
+
                   <div className="p-3.5 bg-[#F2EDE2] dark:bg-[#25221C] rounded-xl border border-[#DFD8C9] dark:border-[#38332A] text-xs text-[#5C5346] dark:text-[#B5AD9F]">
                     👋 Bienvenue sur <strong>Felladina Finance</strong>. En renseignant vos revenus et vos dépenses prévues, l&apos;application calcule en temps réel votre reste à vivre, vos taux d&apos;épargne et vos prévisions budgétaires sur 3 mois.
                   </div>
@@ -778,6 +867,65 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* SIGN IN FLOW */}
         {authMode === 'signin' && (
           <div className="p-6 space-y-6">
+            {/* Google 1-Click Connect Button */}
+            <div className="p-4 bg-[#FAF7F2] dark:bg-[#1E1C18] border border-[#E7E2D6] dark:border-[#332E27] rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#7A7164] dark:text-[#9A9182]">
+                  Connexion Rapide Google
+                </span>
+                <span className="text-[10px] bg-[#3B6B55]/10 text-[#3B6B55] dark:text-[#4AA37B] font-semibold px-2 py-0.5 rounded-full">
+                  Firebase Auth
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white dark:bg-[#25221C] hover:bg-[#F2EDE2] dark:hover:bg-[#2C2720] border border-[#D5CDBE] dark:border-[#3D382F] rounded-xl text-sm font-semibold text-[#2B2621] dark:text-[#F2EFEA] shadow-xs transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              >
+                {isGoogleLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#A24824]" />
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.665-5.17 3.665-9.12z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.28 21.44 7.35 24 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.13z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.28 2.56 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z"
+                    />
+                  </svg>
+                )}
+                <span>
+                  {isGoogleLoading
+                    ? 'Connexion via Google...'
+                    : 'Se connecter avec Google (Compte Gmail)'}
+                </span>
+              </button>
+              {googleError && (
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                  {googleError}
+                </p>
+              )}
+            </div>
+
+            <div className="relative flex py-0 items-center">
+              <div className="flex-grow border-t border-[#E7E2D6] dark:border-[#38332A]" />
+              <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-[#8C8275] dark:text-[#887F72]">
+                Ou via vos profils locaux
+              </span>
+              <div className="flex-grow border-t border-[#E7E2D6] dark:border-[#38332A]" />
+            </div>
+
             {savedProfiles && savedProfiles.length > 0 && (
               <div className="space-y-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#7A7164] block">
